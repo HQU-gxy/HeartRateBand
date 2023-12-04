@@ -11,11 +11,11 @@
 namespace peripheral {
 enum class ButtonState {
   Pressed,
-      Released,
+  Released,
 };
 
 /**
- * @class Button
+ * @class EdgeButton
  *
  * Represents a digital button connected to a GPIO pin.
  * This class provides debouncing functionality to filter out quick,
@@ -33,21 +33,24 @@ enum class ButtonState {
  * and potentially cause button presses or releases to be missed.
  * Even worse, blocking the whole event loop.
  */
-class Button {
+class EdgeButton {
 public:
-  explicit Button(gpio_num_t pin) : pin_(pin) {}
+  explicit EdgeButton(gpio_num_t pin) : pin_(pin) {}
+  /**
+   * @brief The duration that the button must remain in the same state
+   */
+  std::chrono::milliseconds debounce_duration = std::chrono::milliseconds(50);
   std::function<void()> on_press;
   std::function<void()> on_release;
 
 private:
   gpio_num_t pin_;
-  ButtonState state                   = ButtonState::Released;
-  ButtonState last_executed_state     = ButtonState::Released;
-  constexpr static auto debounce_time = std::chrono::milliseconds(30);
+  ButtonState state_               = ButtonState::Released;
+  ButtonState last_executed_state_ = ButtonState::Released;
   Instant instant;
 
   void execute() const {
-    if (state == ButtonState::Pressed) {
+    if (state_ == ButtonState::Pressed) {
       if (on_press) {
         on_press();
       }
@@ -63,17 +66,25 @@ public:
     pinMode(pin_, INPUT);
   }
 
+  /**
+   * @brief Returns the current state of the button
+   * @note This is the debounced state that is updated by `poll()`
+   */
+  [[nodiscard]] ButtonState state() const {
+    return last_executed_state_;
+  }
+
   void poll() {
     auto new_state = digitalRead(pin_) > 0 ? ButtonState::Pressed : ButtonState::Released;
 
-    if (new_state != state) {
+    if (new_state != state_) {
       instant.reset();
-      state = new_state;
+      state_ = new_state;
     }
 
-    if (instant.elapsed() > debounce_time && state != last_executed_state) {
+    if (instant.elapsed() > debounce_duration && state_ != last_executed_state_) {
       execute();
-      last_executed_state = state;
+      last_executed_state_ = state_;
     }
   }
 };

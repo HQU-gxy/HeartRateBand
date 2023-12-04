@@ -8,6 +8,7 @@
 
 using namespace common;
 
+// https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
 using tp_t       = decltype(millis());
 using duration_t = std::chrono::milliseconds;
 enum class PunchStep {
@@ -107,21 +108,30 @@ public:
 };
 
 extern "C" [[noreturn]] void app_main(void) {
-  static tp_t key_last_tp_ms = 0;
-  static bool timer_started  = false;
-
   initArduino();
-  static auto sensor = LoadCell{pin::D_OUT, pin::DP_SCK};
-  static auto valve  = Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
-  pinMode(pin::PUNCH_BTN, INPUT);
+  static auto sensor    = LoadCell{pin::D_OUT, pin::DP_SCK};
+  static auto valve     = Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
+  static auto punch_btn = peripheral::EdgeButton{pin::PUNCH_BTN};
   pinMode(pin::LED, OUTPUT);
   digitalWrite(pin::LED, HIGH);
-  // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
+  using BtnState = peripheral::ButtonState;
+
+  punch_btn.on_release = []() {
+    valve.reset_instant();
+  };
   sensor.begin();
+  valve.begin();
+  punch_btn.begin();
 
   auto loop = []() {
     constexpr auto TAG = "loop";
 
+    punch_btn.poll();
+    if (punch_btn.state() == BtnState ::Pressed) {
+      valve.poll();
+    } else {
+      // nothing
+    }
     sensor.measure_once();
   };
   while (true) {
