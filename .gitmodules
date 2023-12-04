@@ -1,0 +1,6 @@
+[submodule "components/arduino"]
+	path = components/arduino
+	url = https://github.com/espressif/arduino-esp32
+[submodule "components/modbus_slave/ArduinoModbusSlave"]
+	path = components/modbus_slave/ArduinoModbusSlave
+	url = https://github.com/yaacov/ArduinoModbusSlave
