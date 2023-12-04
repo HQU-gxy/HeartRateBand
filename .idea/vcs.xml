@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/components/arduino" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/components/hx711/HX711" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/components/modbus_slave/ArduinoModbusSlave" vcs="Git" />
+  </component>
+</project>

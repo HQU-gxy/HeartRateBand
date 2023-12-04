@@ -42,3 +42,4 @@ cmake-*
 managed_components
 .DS_Store
 __pycache__
+.cache
