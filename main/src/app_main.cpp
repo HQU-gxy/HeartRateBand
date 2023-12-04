@@ -17,20 +17,22 @@ Modbus MBslave;
 Punch punch;
 std::vector<short *> RS_MAP_DATA;
 hw_timer_t *timer1 = NULL;
+bool timer_started = false;
 
 void update_master_code(short addr, short val);
 
 char punch_step_STA = 0, save_STA = 0; // 0:punch_delay  1:punch_out 2:punch_stay 3:poll_back
 //-----timer1 callback
-void timer1_callback(void) {
+void timer1_callback() {
   timerStop(timer1);
+  timer_started = false;
   punch_step_STA++;
   if (punch_step_STA == 4) {
     punch_step_STA = 0;
   }
 }
 
-uint8_t readRSDATA(uint8_t fc, uint16_t address, uint16_t length) {
+uint8_t readRSDATA(uint8_t fc, uint16_t address, uint16_t length, void *args) {
   // Read the requested registers.
   if (address + length <= RS_MAP_DATA.size()) {
     auto arr = std::vector<uint16_t>{};
@@ -44,7 +46,7 @@ uint8_t readRSDATA(uint8_t fc, uint16_t address, uint16_t length) {
   return STATUS_OK;
 }
 
-uint8_t writeRSDATA(uint8_t fc, uint16_t address, uint16_t length) {
+uint8_t writeRSDATA(uint8_t fc, uint16_t address, uint16_t length, void *args) {
   // Read the requested registers.   size - 4 --> writenable
   if (address + length <= RS_MAP_DATA.size()) {
     for (uint8_t i = 0; i < length; i++) {
@@ -166,29 +168,33 @@ public:
   void punch_out() {
     digitalWrite(valve_ad, 1);
     digitalWrite(valve_de, 0);
-    timerAlarmWrite(timer1, this->punch_out_time * 1000, true);
+    timerAlarm(timer1, this->punch_out_time * 1000, true, 0);
     timerStart(timer1);
+    timer_started = true;
   }
 
   void poll_back() {
     digitalWrite(valve_ad, 0);
     digitalWrite(valve_de, 1);
-    timerAlarmWrite(timer1, this->poll_back_time * 1000, true);
+    timerAlarm(timer1, this->poll_back_time * 1000, true, 0);
     timerStart(timer1);
+    timer_started = true;
   }
 
   void punch_stay() {
     digitalWrite(valve_ad, 0);
     digitalWrite(valve_de, 0);
-    timerAlarmWrite(timer1, this->punch_out_stay * 1000, true);
+    timerAlarm(timer1, this->punch_out_stay * 1000, true, 0);
     timerStart(timer1);
+    timer_started = true;
   }
 
   void punch_delay() {
     digitalWrite(valve_ad, 0);
     digitalWrite(valve_de, 0);
-    timerAlarmWrite(timer1, this->punch_delay_ms * 1000, true);
+    timerAlarm(timer1, this->punch_delay_ms * 1000, true, 0);
     timerStart(timer1);
+    timer_started = true;
   }
 };
 
@@ -227,24 +233,27 @@ void setup() {
   slave.Map_DATA();
   slave.slave_init();
   slave.get_EEPROM_DATA();
-  timer1 = timerBegin(1, 80, true); // timer1 -> valve
-  timerAttachInterrupt(timer1, &timer1_callback, true);
-  timerAlarmWrite(timer1, 1000, true);
-  timerAlarmEnable(timer1);
+  auto freq              = timerGetFrequency(timer1);
+  constexpr auto divider = 80;
+
+  timer1 = timerBegin(freq / 80); // timer1 -> valve
+  timerAttachInterrupt(timer1, &timer1_callback);
+  // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
+  timerAlarm(timer1, 1000, true, 0);
+  // timerAlarmEnable(timer1);
   timerStop(timer1);
+  timer_started = false;
   timerWrite(timer1, 0);
   delay(1000);
   punch.punch_init();
   Serial.println("****PUNCH CTRL****");
   slave.print_all_verbs();
-  esp_task_wdt_init(3, true);
 }
 
 int last_feed_time = 0, key_last = 0;
 
 void loop() {
-  if (digitalRead(punch_key) == 1 && timerStarted(timer1) == 0) // valve act
-  {
+  if (digitalRead(punch_key) == 1 && timer_started) {
     switch (punch_step_STA) {
       case 0:
         Serial.println("punch_delay");
@@ -268,6 +277,7 @@ void loop() {
     if (millis() - key_last > 5) {
       punch_step_STA = 0;
       timerStop(timer1);
+      timer_started = false;
       timerWrite(timer1, 0);
     }
   } else {
@@ -283,14 +293,14 @@ void loop() {
 
   MBslave.poll();
   if ((millis() - last_feed_time) > 2000) {
-    esp_task_wdt_add(NULL);
+    esp_task_wdt_add(nullptr);
     esp_task_wdt_reset();
     last_feed_time = millis();
   }
 }
 
 #ifndef PLATFORMIO
-[[noreturn]] extern "C" void app_main(void) {
+extern "C" [[noreturn]] void app_main(void) {
   setup();
   while (true) {
     loop();
