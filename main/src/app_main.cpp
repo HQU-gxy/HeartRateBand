@@ -82,6 +82,8 @@ private:
       {PunchStep::Stay, DEFAULT_DURATION},
       {PunchStep::Back, DEFAULT_DURATION},
   };
+  tp_t disable_time_point = 0;
+  bool is_enabled         = false;
   Instant instant;
 
   void action(PunchStep step) {
@@ -100,24 +102,35 @@ private:
   }
 
 public:
-  Valve(gpio_num_t add, gpio_num_t decrease) : add_(add), decrease_(decrease) {}
+  Valve(gpio_num_t add, gpio_num_t decrease) : add_(add), decrease_(decrease) {
+    disable_time_point = esp_timer_get_time();
+  }
 
   void begin() {
     pinMode(add_, OUTPUT);
     pinMode(decrease_, OUTPUT);
+    is_enabled = true;
   }
 
   void set_delay(PunchStep step, duration_t delay) {
     delay_map[step] = delay;
   }
 
-  void reset_instant() {
-    instant.reset();
+  void enable() {
+    is_enabled   = true;
+    auto now     = esp_timer_get_time();
+    auto elapsed = now - disable_time_point;
+    instant.add(elapsed);
+  }
+
+  void disable() {
+    is_enabled         = false;
+    disable_time_point = esp_timer_get_time();
   }
 
   void poll() {
     bool run = instant.elapsed() > delay_map[state];
-    if (run) {
+    if (run && is_enabled) {
       next_action();
       ESP_LOGI(TAG, "state %s", to_string(state).c_str());
       instant.reset();
@@ -134,8 +147,11 @@ extern "C" [[noreturn]] void app_main(void) {
   digitalWrite(pin::LED, HIGH);
   using BtnState = peripheral::ButtonState;
 
+  punch_btn.on_press = []() {
+    valve.enable();
+  };
   punch_btn.on_release = []() {
-    valve.reset_instant();
+    valve.disable();
   };
   sensor.begin();
   valve.begin();

@@ -9,7 +9,11 @@
 #include <chrono>
 
 class Instant {
-  decltype(esp_timer_get_time()) time;
+public:
+  using timepoint_t = decltype(esp_timer_get_time());
+
+private:
+  timepoint_t time;
 
 public:
   Instant() {
@@ -37,6 +41,10 @@ public:
 
   [[nodiscard]] auto count() const {
     return time;
+  }
+
+  void add(timepoint_t time) {
+    this->time += time;
   }
 
   template <typename T>
