@@ -277,5 +277,12 @@ int last_feed_time=0 ,key_last =0;
   }
 }
 
-
+#ifndef PLATFORMIO
+extern "C" void app_main(void){
+    setup();
+    while (true){
+        loop();
+    }
+}
+#endif
 

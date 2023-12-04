@@ -1,4 +1,12 @@
-idf_component_register(SRCS src/app_main.cpp INCLUDE_DIRS inc)
+idf_component_register(
+  SRCS 
+    src/app_main.cpp 
+  INCLUDE_DIRS 
+    inc
+  REQUIRES 
+    arduino
+    hx711
+    modbus_slave)
 
 # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html
 # C++23

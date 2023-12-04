@@ -4,3 +4,6 @@
 [submodule "components/modbus_slave/ArduinoModbusSlave"]
 	path = components/modbus_slave/ArduinoModbusSlave
 	url = https://github.com/yaacov/ArduinoModbusSlave
+[submodule "components/hx711/HX711"]
+	path = components/hx711/HX711
+	url = https://github.com/bogde/HX711
