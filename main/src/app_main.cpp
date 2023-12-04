@@ -1,36 +1,45 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <esp_task_wdt.h>
-#include <vector>
 #include "Punch.h"
+#include "common.h"
 #include <driver/gpio.h>
 
-#define u8 uint8_t
-// Pin attatch
-namespace pin {
-constexpr auto VALVE_ADD      = GPIO_NUM_27;
-constexpr auto VALVE_DECREASE = GPIO_NUM_14;
-constexpr auto PUNCH          = GPIO_NUM_25;
-constexpr auto LED            = GPIO_NUM_2;
-}
-constexpr auto EEP_size = 30;
-
-Punch punch;
-std::vector<short *> RS_MAP_DATA;
+using namespace common;
 hw_timer_t *timer1 = nullptr;
-bool timer_started = false;
 
-// 0:punch_delay  1:punch_out 2:punch_stay 3:poll_back
-uint8_t punch_step_STA = 0;
-uint8_t save_STA       = 0;
-//-----timer1 callback
+using tp_t = decltype(millis());
+enum class PunchStep {
+  Delay = 0,
+  Out,
+  Stay,
+  Back,
+};
+
+PunchStep next(PunchStep step) {
+  switch (step) {
+    case PunchStep::Delay:
+      return PunchStep::Out;
+    case PunchStep::Out:
+      return PunchStep::Stay;
+    case PunchStep::Stay:
+      return PunchStep::Back;
+    case PunchStep::Back:
+    default:
+      return PunchStep::Delay;
+  }
+}
+
+PunchStep punch_step_STA = PunchStep::Delay;
+uint8_t save_STA         = 0;
+tp_t last_feed_time      = 0;
+tp_t key_last_tp_ms      = 0;
+bool timer_started       = false;
+
 void timer1_callback() {
   timerStop(timer1);
-  timer_started = false;
-  punch_step_STA++;
-  if (punch_step_STA == 4) {
-    punch_step_STA = 0;
-  }
+  timer_started  = false;
+  punch_step_STA = next(punch_step_STA);
 }
 
 constexpr uint16_t punch_out_time = 1;
@@ -69,14 +78,12 @@ void punch_delay() {
   timer_started = true;
 }
 
-void setup() {
-  // put your setup code here, to run once:
-  EEPROM.begin(EEP_size);
+extern "C" [[noreturn]] void app_main(void) {
+  initArduino();
+  static auto punch = Punch{pin::D_OUT, pin::DP_SCK};
   pinMode(pin::VALVE_ADD, OUTPUT); // val
   pinMode(pin::VALVE_DECREASE, OUTPUT);
   pinMode(pin::PUNCH, INPUT);
-  Serial.begin(115200);
-  Serial2.begin(115200);
   pinMode(pin::LED, OUTPUT);
   digitalWrite(pin::LED, 1);
   auto freq              = timerGetFrequency(timer1);
@@ -92,59 +99,52 @@ void setup() {
   timerWrite(timer1, 0);
   delay(1000);
   punch.punch_init();
-}
 
-int last_feed_time = 0, key_last = 0;
-
-void loop() {
-  if (digitalRead(pin::PUNCH) == 1 && timer_started) {
-    switch (punch_step_STA) {
-      case 0:
-        Serial.println("punch_delay");
-        punch_delay();
-        break;
-      case 1:
-        Serial.println("punch_out ");
-        punch_out();
-        break;
-      case 2:
-        Serial.println("punch_stay ");
-        punch_stay();
-        break;
-      case 3:
-        Serial.println("poll_back ");
-        poll_back();
+  auto loop = []() {
+    constexpr auto TAG = "loop";
+    if (digitalRead(pin::PUNCH) == 1 && timer_started) {
+      switch (punch_step_STA) {
+        case PunchStep::Delay:
+          ESP_LOGI(TAG, "punch_delay");
+          punch_delay();
+          break;
+        case PunchStep::Out:
+          ESP_LOGI(TAG, "punch_out");
+          punch_out();
+          break;
+        case PunchStep::Stay:
+          ESP_LOGI(TAG, "punch_stay");
+          punch_stay();
+          break;
+        case PunchStep::Back:
+          ESP_LOGI(TAG, "poll_back");
+          poll_back();
+      }
     }
-  }
-  if (digitalRead(pin::PUNCH) == 0) {
-    if (millis() - key_last > 5) {
-      punch_step_STA = 0;
-      timerStop(timer1);
-      timer_started = false;
-      timerWrite(timer1, 0);
+    if (digitalRead(pin::PUNCH) == 0) {
+      if (millis() - key_last_tp_ms > 5) {
+        punch_step_STA = PunchStep::Delay;
+        timerStop(timer1);
+        timer_started = false;
+        timerWrite(timer1, 0);
+      }
+    } else {
+      key_last_tp_ms = millis();
     }
-  } else {
-    key_last = millis();
-  }
 
-  if (save_STA) {
-    save_STA = 0;
-  }
+    if (save_STA) {
+      save_STA = 0;
+    }
 
-  punch.measure_once_upper();
+    punch.measure_once_upper();
 
-  if ((millis() - last_feed_time) > 2000) {
-    esp_task_wdt_add(nullptr);
-    esp_task_wdt_reset();
-    last_feed_time = millis();
-  }
-}
-
-#ifndef PLATFORMIO
-extern "C" [[noreturn]] void app_main(void) {
-  setup();
+    if ((millis() - last_feed_time) > 2000) {
+      esp_task_wdt_add(nullptr);
+      esp_task_wdt_reset();
+      last_feed_time = millis();
+    }
+  };
   while (true) {
     loop();
   }
 }
-#endif

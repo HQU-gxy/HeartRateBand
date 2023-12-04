@@ -3,6 +3,5 @@
 cmake_minimum_required(VERSION 3.20)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# gcc-8 has C++ 20 support already
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(wit_hub)
+project(Puncher)

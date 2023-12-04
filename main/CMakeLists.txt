@@ -5,6 +5,7 @@ idf_component_register(
     inc
   REQUIRES 
     arduino
+    etl
     hx711
     modbus_slave)
 
