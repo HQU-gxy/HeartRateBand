@@ -18,6 +18,21 @@ enum class PunchStep {
   Back,
 };
 
+std::string to_string(PunchStep step) {
+  switch (step) {
+    case PunchStep::Delay:
+      return "Delay";
+    case PunchStep::Out:
+      return "Out";
+    case PunchStep::Stay:
+      return "Stay";
+    case PunchStep::Back:
+      return "Back";
+    default:
+      std::unreachable();
+  }
+}
+
 struct ValveOut {
   bool add;
   bool decrease;
@@ -32,8 +47,9 @@ PunchStep next(PunchStep step) {
     case PunchStep::Stay:
       return PunchStep::Back;
     case PunchStep::Back:
-    default:
       return PunchStep::Delay;
+    default:
+      std::unreachable();
   }
 }
 
@@ -47,6 +63,8 @@ ValveOut valve(PunchStep step) {
       return {0, 0};
     case PunchStep::Back:
       return {0, 1};
+    default:
+      std::unreachable();
   }
 }
 
@@ -101,7 +119,7 @@ public:
     bool run = instant.elapsed() > delay_map[state];
     if (run) {
       next_action();
-      ESP_LOGI(TAG, "state %d", state);
+      ESP_LOGI(TAG, "state %s", to_string(state).c_str());
       instant.reset();
     }
   }
