@@ -11,11 +11,12 @@ namespace common {
 namespace pin {
   constexpr auto VALVE_ADD      = GPIO_NUM_27;
   constexpr auto VALVE_DECREASE = GPIO_NUM_14;
-  constexpr auto PUNCH          = GPIO_NUM_25;
+  constexpr auto PUNCH_BTN      = GPIO_NUM_25;
   constexpr auto LED            = GPIO_NUM_2;
   constexpr auto D_OUT          = GPIO_NUM_34;
   constexpr auto DP_SCK         = GPIO_NUM_14;
 }
+constexpr auto DEFAULT_DURATION = std::chrono::milliseconds(1000);
 }
 
 #endif // WIT_HUB_COMMON_H

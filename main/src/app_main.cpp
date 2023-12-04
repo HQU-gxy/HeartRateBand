@@ -1,19 +1,25 @@
 #include <Arduino.h>
-#include <EEPROM.h>
-#include <esp_task_wdt.h>
-#include "Punch.h"
+#include "instant.h"
+#include "LoadCell.h"
 #include "common.h"
+#include <etl/flat_map.h>
+#include <button.h>
 #include <driver/gpio.h>
 
 using namespace common;
-hw_timer_t *timer1 = nullptr;
 
-using tp_t = decltype(millis());
+using tp_t       = decltype(millis());
+using duration_t = std::chrono::milliseconds;
 enum class PunchStep {
   Delay = 0,
   Out,
   Stay,
   Back,
+};
+
+struct ValveOut {
+  bool add;
+  bool decrease;
 };
 
 PunchStep next(PunchStep step) {
@@ -30,119 +36,93 @@ PunchStep next(PunchStep step) {
   }
 }
 
-PunchStep punch_step_STA = PunchStep::Delay;
-uint8_t save_STA         = 0;
-tp_t last_feed_time      = 0;
-tp_t key_last_tp_ms      = 0;
-bool timer_started       = false;
-
-void timer1_callback() {
-  timerStop(timer1);
-  timer_started  = false;
-  punch_step_STA = next(punch_step_STA);
+ValveOut valve(PunchStep step) {
+  switch (step) {
+    case PunchStep::Delay:
+      return {0, 0};
+    case PunchStep::Out:
+      return {1, 0};
+    case PunchStep::Stay:
+      return {0, 0};
+    case PunchStep::Back:
+      return {0, 1};
+  }
 }
 
-constexpr uint16_t punch_out_time = 1;
-constexpr uint16_t poll_back_time = 1;
-constexpr uint16_t punch_delay_ms = 1;
-constexpr uint16_t punch_out_stay = 1;
-void punch_out() {
-  digitalWrite(pin::VALVE_ADD, 1);
-  digitalWrite(pin::VALVE_DECREASE, 0);
-  timerAlarm(timer1, punch_out_time * 1000, true, 0);
-  timerStart(timer1);
-  timer_started = true;
-}
+class Valve {
+public:
+  static constexpr auto TAG = "Valve";
 
-void poll_back() {
-  digitalWrite(pin::VALVE_ADD, 0);
-  digitalWrite(pin::VALVE_DECREASE, 1);
-  timerAlarm(timer1, poll_back_time * 1000, true, 0);
-  timerStart(timer1);
-  timer_started = true;
-}
+private:
+  gpio_num_t add_;
+  gpio_num_t decrease_;
+  PunchStep state                                   = PunchStep::Delay;
+  etl::flat_map<PunchStep, duration_t, 4> delay_map = {
+      {PunchStep::Delay, DEFAULT_DURATION},
+      {PunchStep::Out, DEFAULT_DURATION},
+      {PunchStep::Stay, DEFAULT_DURATION},
+      {PunchStep::Back, DEFAULT_DURATION},
+  };
+  Instant instant;
 
-void punch_stay() {
-  digitalWrite(pin::VALVE_ADD, 0);
-  digitalWrite(pin::VALVE_DECREASE, 0);
-  timerAlarm(timer1, punch_out_stay * 1000, true, 0);
-  timerStart(timer1);
-  timer_started = true;
-}
+  void action(PunchStep step) {
+    auto [add, decrease] = valve(step);
+    gpio_set_level(add_, add);
+    gpio_set_level(decrease_, decrease);
+  }
 
-void punch_delay() {
-  digitalWrite(pin::VALVE_ADD, 0);
-  digitalWrite(pin::VALVE_DECREASE, 0);
-  timerAlarm(timer1, punch_delay_ms * 1000, true, 0);
-  timerStart(timer1);
-  timer_started = true;
-}
+  void next_state() {
+    state = next(state);
+  }
+
+  void next_action() {
+    next_state();
+    action(state);
+  }
+
+public:
+  Valve(gpio_num_t add, gpio_num_t decrease) : add_(add), decrease_(decrease) {}
+
+  void begin() {
+    pinMode(add_, OUTPUT);
+    pinMode(decrease_, OUTPUT);
+  }
+
+  void set_delay(PunchStep step, duration_t delay) {
+    delay_map[step] = delay;
+  }
+
+  void reset_instant() {
+    instant.reset();
+  }
+
+  void poll() {
+    bool run = instant.elapsed() > delay_map[state];
+    if (run) {
+      next_action();
+      ESP_LOGI(TAG, "state %d", state);
+      instant.reset();
+    }
+  }
+};
 
 extern "C" [[noreturn]] void app_main(void) {
-  initArduino();
-  static auto punch = Punch{pin::D_OUT, pin::DP_SCK};
-  pinMode(pin::VALVE_ADD, OUTPUT); // val
-  pinMode(pin::VALVE_DECREASE, OUTPUT);
-  pinMode(pin::PUNCH, INPUT);
-  pinMode(pin::LED, OUTPUT);
-  digitalWrite(pin::LED, 1);
-  auto freq              = timerGetFrequency(timer1);
-  constexpr auto divider = 80;
+  static tp_t key_last_tp_ms = 0;
+  static bool timer_started  = false;
 
-  timer1 = timerBegin(freq / 80); // timer1 -> valve
-  timerAttachInterrupt(timer1, &timer1_callback);
+  initArduino();
+  static auto sensor = LoadCell{pin::D_OUT, pin::DP_SCK};
+  static auto valve  = Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
+  pinMode(pin::PUNCH_BTN, INPUT);
+  pinMode(pin::LED, OUTPUT);
+  digitalWrite(pin::LED, HIGH);
   // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
-  timerAlarm(timer1, 1000, true, 0);
-  // timerAlarmEnable(timer1);
-  timerStop(timer1);
-  timer_started = false;
-  timerWrite(timer1, 0);
-  delay(1000);
-  punch.punch_init();
+  sensor.begin();
 
   auto loop = []() {
     constexpr auto TAG = "loop";
-    if (digitalRead(pin::PUNCH) == 1 && timer_started) {
-      switch (punch_step_STA) {
-        case PunchStep::Delay:
-          ESP_LOGI(TAG, "punch_delay");
-          punch_delay();
-          break;
-        case PunchStep::Out:
-          ESP_LOGI(TAG, "punch_out");
-          punch_out();
-          break;
-        case PunchStep::Stay:
-          ESP_LOGI(TAG, "punch_stay");
-          punch_stay();
-          break;
-        case PunchStep::Back:
-          ESP_LOGI(TAG, "poll_back");
-          poll_back();
-      }
-    }
-    if (digitalRead(pin::PUNCH) == 0) {
-      if (millis() - key_last_tp_ms > 5) {
-        punch_step_STA = PunchStep::Delay;
-        timerStop(timer1);
-        timer_started = false;
-        timerWrite(timer1, 0);
-      }
-    } else {
-      key_last_tp_ms = millis();
-    }
 
-    if (save_STA) {
-      save_STA = 0;
-    }
-
-    punch.measure_once_upper();
-
-    if ((millis() - last_feed_time) > 2000) {
-      esp_task_wdt_add(nullptr);
-      esp_task_wdt_reset();
-      last_feed_time = millis();
-    }
+    sensor.measure_once();
   };
   while (true) {
     loop();
