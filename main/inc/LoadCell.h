@@ -2,21 +2,21 @@
 #define PUNCHER_LOAD_CELL_H
 #include <Arduino.h>
 #include <HX711.h>
+#include <etl/deque.h>
+#include <etl/optional.h>
+#include "utils.h"
 #include "common.h"
 class LoadCell {
 private:
   gpio_num_t DOUT;
   gpio_num_t PD_SCK;
   HX711 Hx711{};
-  static constexpr uint8_t buf_size = 30;
+
+  size_t per_kg = common::LOAD_CELL_DEFAULT_UNIT_PER_KG;
+  utils::MovingAverage<common::LOAD_CELL_BUF_SIZE> buf;
 
 public:
   LoadCell(gpio_num_t d_out, gpio_num_t pd_sck) : DOUT(d_out), PD_SCK(pd_sck) {}
-
-  uint8_t measure_cnt          = 0;
-  static constexpr auto per_kg = 21000;
-  float punch_power            = 0;
-  float measure_buf[buf_size]{};
 
   bool begin() {
     Hx711.begin(DOUT, PD_SCK);
@@ -29,25 +29,15 @@ public:
     return true;
   }
 
-  void measure_once() {
-    float temp = Hx711.get_units(1);
-    if (temp > per_kg) {
-      punch_power              = temp / per_kg;
-      measure_buf[measure_cnt] = punch_power;
-      measure_cnt++;
-    }
-    if (measure_cnt == buf_size) {
-      measure_cnt = 0;
+  void measure(uint8_t n = 1) {
+    float temp = Hx711.get_units(n);
+    if (temp > static_cast<float>(per_kg)) {
+      buf.next(temp);
     }
   }
 
-  void measure_n(uint8_t n) {
-    measure_buf[measure_cnt] = Hx711.get_units(3);
-    measure_cnt++;
-    if (measure_cnt == buf_size) {
-      measure_cnt = 0;
-      // TODO
-    }
+  etl::optional<float> average() {
+    return buf.get();
   }
 };
 

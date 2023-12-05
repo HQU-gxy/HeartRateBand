@@ -16,7 +16,9 @@ namespace pin {
   constexpr auto D_OUT          = GPIO_NUM_34;
   constexpr auto DP_SCK         = GPIO_NUM_14;
 }
-constexpr auto DEFAULT_DURATION = std::chrono::milliseconds(1000);
+constexpr auto DEFAULT_DURATION   = std::chrono::milliseconds(1000);
+constexpr auto LOAD_CELL_BUF_SIZE = 30;
+static constexpr auto LOAD_CELL_DEFAULT_UNIT_PER_KG = 21000;
 }
 
 #endif // WIT_HUB_COMMON_H
