@@ -10,6 +10,9 @@
 
 namespace protocol {
 // https://gist.github.com/soburi/4e1cc77df363e52ff0f366aeb23dac39
+// https://www.rfc-editor.org/rfc/rfc8949.html#name-cbor-data-models
+// https://www.rfc-editor.org/rfc/rfc8949.html#name-cbor-tags-registry
+// https://www.rfc-editor.org/rfc/rfc8949.html#name-tagging-of-items
 constexpr uint8_t LOAD_CELL_READING_MAGIC = 0x10;
 etl::expected<size_t, CborError>
 encode_load_cell_reading(const float *begin,
@@ -21,7 +24,7 @@ encode_load_cell_reading(const float *begin,
   CborEncoder encoder;
   cbor_encoder_init(&encoder, buffer, size, 0);
   auto len = std::distance(begin, end);
-  err      = cbor_encode_uint(&encoder, LOAD_CELL_READING_MAGIC);
+  err      = cbor_encode_simple_value(&encoder, LOAD_CELL_READING_MAGIC);
   if (err != CborNoError) {
     return ue_t{err};
   }
@@ -31,7 +34,7 @@ encode_load_cell_reading(const float *begin,
     return ue_t{err};
   }
   for (auto it = begin; it != end; ++it) {
-    err = cbor_encode_float(&container, *it);
+    err = cbor_encode_float_as_half_float(&container, *it);
     if (err != CborNoError) {
       return ue_t{err};
     }
