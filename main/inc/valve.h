@@ -82,7 +82,7 @@ private:
       {PunchStep::Back, common::DEFAULT_DURATION},
   };
   tp_t disable_time_point = 0;
-  bool is_enabled         = false;
+  bool is_enabled_        = false;
   Instant instant;
 
   void action(PunchStep step) {
@@ -114,21 +114,25 @@ public:
     delay_map[step] = delay;
   }
 
+  [[nodiscard]] bool is_enabled() const {
+    return is_enabled_;
+  }
+
   void enable() {
-    is_enabled   = true;
+    is_enabled_  = true;
     auto now     = esp_timer_get_time();
     auto elapsed = now - disable_time_point;
     instant.add(elapsed);
   }
 
   void disable() {
-    is_enabled         = false;
+    is_enabled_        = false;
     disable_time_point = esp_timer_get_time();
   }
 
   void poll() {
     bool run = instant.elapsed() > delay_map[state];
-    if (run && is_enabled) {
+    if (run && is_enabled_) {
       next_action();
       ESP_LOGI(TAG, "state %s", to_string(state).c_str());
       instant.reset();

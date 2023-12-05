@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/arduino" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/components/etl/etl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/hx711/HX711" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/modbus_slave/ArduinoModbusSlave" vcs="Git" />
   </component>

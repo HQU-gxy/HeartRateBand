@@ -10,7 +10,6 @@
 using namespace common;
 
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
-
 extern "C" [[noreturn]] void app_main(void) {
   initArduino();
   static auto sensor    = LoadCell{pin::D_OUT, pin::DP_SCK};
@@ -20,12 +19,15 @@ extern "C" [[noreturn]] void app_main(void) {
   digitalWrite(pin::LED, HIGH);
   using BtnState = peripheral::ButtonState;
 
-  punch_btn.on_press = []() {
-    valve.enable();
-  };
+  punch_btn.on_press   = []() {};
   punch_btn.on_release = []() {
-    valve.disable();
+    if (valve.is_enabled()) {
+      valve.disable();
+    } else {
+      valve.enable();
+    }
   };
+
   sensor.begin();
   valve.begin();
   punch_btn.begin();
@@ -34,11 +36,7 @@ extern "C" [[noreturn]] void app_main(void) {
     constexpr auto TAG = "loop";
 
     punch_btn.poll();
-    if (punch_btn.state() == BtnState ::Pressed) {
-      valve.poll();
-    } else {
-      // nothing
-    }
+    valve.poll();
     sensor.measure_once();
   };
   while (true) {
