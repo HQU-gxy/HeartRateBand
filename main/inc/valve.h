@@ -56,7 +56,7 @@ PunchStep next(PunchStep step) {
   }
 }
 
-ValveOut valve(PunchStep step) {
+ValveOut to_io(PunchStep step) {
   switch (step) {
     case PunchStep::Retracted:
       return {0, 0};
@@ -73,9 +73,10 @@ ValveOut valve(PunchStep step) {
 
 class Valve {
 public:
-  static constexpr auto TAG = "Valve";
-  using tp_t                = Instant::timepoint_t;
-  using duration_t          = std::chrono::milliseconds;
+  static constexpr auto TAG                     = "Valve";
+  using tp_t                                    = Instant::timepoint_t;
+  using duration_t                              = std::chrono::milliseconds;
+  std::function<void(PunchStep)> on_step_change = nullptr;
 
 private:
   gpio_num_t add_;
@@ -94,7 +95,7 @@ private:
   Instant instant;
 
   void action(PunchStep step) {
-    auto [add, decrease] = valve(step);
+    auto [add, decrease] = to_io(step);
     gpio_set_level(add_, add);
     gpio_set_level(decrease_, decrease);
   }
@@ -103,6 +104,9 @@ private:
     auto step = next(step_);
     action(step);
     step_ = step;
+    if (on_step_change != nullptr) {
+      on_step_change(step_);
+    }
     instant.reset();
   }
 
@@ -110,6 +114,9 @@ private:
     auto step = next(step_);
     action(step);
     step_ = step;
+    if (on_step_change != nullptr) {
+      on_step_change(step_);
+    }
     instant.reset();
     if (step_ == PunchStep::Retracted) {
       idle();
@@ -124,6 +131,15 @@ public:
   void begin() {
     pinMode(add_, OUTPUT);
     pinMode(decrease_, OUTPUT);
+  }
+
+  /**
+   * @brief Set the step object
+   * @warning usually user should not change the step manually.
+   * It should only be used for providing the initial step.
+   */
+  void set_step(PunchStep step) {
+    step_ = step;
   }
 
   void set_delay(PunchStep step, duration_t delay) {

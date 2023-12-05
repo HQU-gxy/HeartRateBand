@@ -7,6 +7,7 @@
 #include "valve.h"
 #include "wlan_manager.h"
 #include "utils.h"
+#include "app_nvs.h"
 #include <driver/gpio.h>
 
 #define stringify_literal(x)     #x
@@ -57,6 +58,16 @@ restart:
       ESP_LOGI(TAG, "enable valve");
       valve.successive();
     }
+  };
+
+  auto last_step = app_nvs::get_punch_step();
+  if (last_step.has_value()) {
+    ESP_LOGI(TAG, "last valve step=%d", last_step.value());
+    valve.set_step(static_cast<peripheral::PunchStep>(last_step.value()));
+  }
+
+  valve.on_step_change = [](peripheral::PunchStep step) {
+    app_nvs::set_punch_step(static_cast<common::nvs::punch_step_t>(step));
   };
 
   bool ok = sensor.begin();

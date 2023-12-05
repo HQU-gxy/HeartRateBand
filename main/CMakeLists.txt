@@ -3,6 +3,7 @@ idf_component_register(
     src/app_main.cpp
     src/wlan_manager.cpp
     src/utils.cpp
+    src/app_nvs.cpp
   INCLUDE_DIRS
     inc
   REQUIRES
