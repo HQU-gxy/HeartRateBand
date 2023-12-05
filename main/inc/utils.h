@@ -14,26 +14,50 @@ size_t sprintHex(char *out, size_t outSize, const uint8_t *bytes, size_t size);
 std::string toHex(const uint8_t *bytes, size_t size);
 
 template <size_t N>
-class MovingAverage {
+class SimpleMovingAverage {
 private:
   float sum   = 0;
   size_t size = 0;
   etl::optional<float> value_;
 
 public:
-  MovingAverage() = default;
+  SimpleMovingAverage() = default;
   float next(float value) {
     if (size < N) {
       sum += value;
       size++;
       value_ = sum / size;
-      return *value_;
     } else {
-      sum -= sum / size;
+      sum -= sum / N;
       sum += value;
-      value_ = sum / size;
-      return *value_;
+      value_ = sum / N;
     }
+    return *value_;
+  }
+
+  etl::optional<float> get() {
+    return value_;
+  }
+};
+
+template <size_t N>
+class ExponentMovingAverage {
+private:
+  etl::optional<float> value_;
+
+public:
+  ExponentMovingAverage() = default;
+  float next(float value) {
+    if (!value_.has_value()) {
+      value_ = value;
+    } else {
+      constexpr float k = 2.0f / (N + 1);
+      static_assert(k < 1.0f);
+      static_assert(k > 0.0f);
+      auto old = *value_;
+      value_   = (value * k) + (old * (1 - k));
+    }
+    return *value_;
   }
 
   etl::optional<float> get() {

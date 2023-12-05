@@ -19,6 +19,7 @@ namespace pin {
 constexpr auto DEFAULT_DURATION   = std::chrono::milliseconds(1000);
 constexpr auto LOAD_CELL_BUF_SIZE = 30;
 static constexpr auto LOAD_CELL_DEFAULT_UNIT_PER_KG = 21000;
+constexpr auto MAX_SUB_TOPIC_COUNT = 8;
 
 static constexpr auto ChanBit = BIT2;
 }

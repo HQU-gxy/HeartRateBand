@@ -1,0 +1,6 @@
+syntax = "proto3";
+enum PunchControl{
+  Once = 0x00;
+  Successive = 0x01;
+  Stop = 0x02;
+}

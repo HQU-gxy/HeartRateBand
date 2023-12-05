@@ -9,22 +9,28 @@
 
 namespace peripheral {
 enum class PunchStep {
-  Delay = 0,
-  Out,
-  Stay,
-  Back,
+  Retracted = 0,
+  ReachingOut,
+  Extended,
+  PullingBack,
+};
+
+enum class PunchState {
+  Idle = 0,
+  Successive,
+  Once,
 };
 
 std::string to_string(PunchStep step) {
   switch (step) {
-    case PunchStep::Delay:
-      return "Delay";
-    case PunchStep::Out:
-      return "Out";
-    case PunchStep::Stay:
-      return "Stay";
-    case PunchStep::Back:
-      return "Back";
+    case PunchStep::Retracted:
+      return "Retracted";
+    case PunchStep::ReachingOut:
+      return "ReachingOut";
+    case PunchStep::Extended:
+      return "Extended";
+    case PunchStep::PullingBack:
+      return "PullingBack";
     default:
       std::unreachable();
   }
@@ -37,14 +43,14 @@ struct ValveOut {
 
 PunchStep next(PunchStep step) {
   switch (step) {
-    case PunchStep::Delay:
-      return PunchStep::Out;
-    case PunchStep::Out:
-      return PunchStep::Stay;
-    case PunchStep::Stay:
-      return PunchStep::Back;
-    case PunchStep::Back:
-      return PunchStep::Delay;
+    case PunchStep::Retracted:
+      return PunchStep::ReachingOut;
+    case PunchStep::ReachingOut:
+      return PunchStep::Extended;
+    case PunchStep::Extended:
+      return PunchStep::PullingBack;
+    case PunchStep::PullingBack:
+      return PunchStep::Retracted;
     default:
       std::unreachable();
   }
@@ -52,13 +58,13 @@ PunchStep next(PunchStep step) {
 
 ValveOut valve(PunchStep step) {
   switch (step) {
-    case PunchStep::Delay:
+    case PunchStep::Retracted:
       return {0, 0};
-    case PunchStep::Out:
+    case PunchStep::ReachingOut:
       return {1, 0};
-    case PunchStep::Stay:
+    case PunchStep::Extended:
       return {0, 0};
-    case PunchStep::Back:
+    case PunchStep::PullingBack:
       return {0, 1};
     default:
       std::unreachable();
@@ -74,15 +80,17 @@ public:
 private:
   gpio_num_t add_;
   gpio_num_t decrease_;
-  PunchStep state                                   = PunchStep::Delay;
+  PunchStep step_   = PunchStep::Retracted;
+  PunchState state_ = PunchState::Idle;
+
   etl::flat_map<PunchStep, duration_t, 4> delay_map = {
-      {PunchStep::Delay, common::DEFAULT_DURATION},
-      {PunchStep::Out, common::DEFAULT_DURATION},
-      {PunchStep::Stay, common::DEFAULT_DURATION},
-      {PunchStep::Back, common::DEFAULT_DURATION},
+      {PunchStep::Retracted, common::DEFAULT_DURATION},
+      {PunchStep::ReachingOut, common::DEFAULT_DURATION},
+      {PunchStep::Extended, common::DEFAULT_DURATION},
+      {PunchStep::PullingBack, common::DEFAULT_DURATION},
   };
+
   tp_t disable_time_point = 0;
-  bool is_enabled_        = false;
   Instant instant;
 
   void action(PunchStep step) {
@@ -91,13 +99,21 @@ private:
     gpio_set_level(decrease_, decrease);
   }
 
-  void next_state() {
-    state = next(state);
+  void on_successive() {
+    auto step = next(step_);
+    action(step);
+    step_ = step;
+    instant.reset();
   }
 
-  void next_action() {
-    next_state();
-    action(state);
+  void on_once() {
+    auto step = next(step_);
+    action(step);
+    step_ = step;
+    instant.reset();
+    if (step_ == PunchStep::Retracted) {
+      idle();
+    }
   }
 
 public:
@@ -114,28 +130,41 @@ public:
     delay_map[step] = delay;
   }
 
-  [[nodiscard]] bool is_enabled() const {
-    return is_enabled_;
+  [[nodiscard]] bool is_active() const {
+    return state_ != PunchState::Idle;
   }
 
-  void enable() {
-    is_enabled_  = true;
+  void successive() {
+    state_       = PunchState::Successive;
     auto now     = esp_timer_get_time();
     auto elapsed = now - disable_time_point;
     instant.add(elapsed);
   }
 
-  void disable() {
-    is_enabled_        = false;
+  void once() {
+    state_       = PunchState::Once;
+    auto now     = esp_timer_get_time();
+    auto elapsed = now - disable_time_point;
+    instant.add(elapsed);
+  }
+
+  void idle() {
+    state_             = PunchState::Idle;
     disable_time_point = esp_timer_get_time();
   }
 
   void poll() {
-    bool run = instant.elapsed() > delay_map[state];
-    if (run && is_enabled_) {
-      next_action();
-      ESP_LOGI(TAG, "state %s", to_string(state).c_str());
-      instant.reset();
+    if (state_ == PunchState::Idle) {
+      return;
+    }
+    bool run = instant.elapsed() > delay_map[step_];
+    if (run) {
+      if (state_ == PunchState::Successive) {
+        on_successive();
+      } else if (state_ == PunchState::Once) {
+        on_once();
+      }
+      ESP_LOGI(TAG, "step=%s", to_string(step_).c_str());
     }
   }
 };

@@ -6,12 +6,13 @@
 #define TRACK_HUB_WLAN_MANAGER_H
 #include <esp_check.h>
 #include <mqtt_client.h>
+#include <etl/vector.h>
 #include <nvs_flash.h>
 #include "wlan_pb.h"
 #include "esp_wifi.h"
 #include <freertos/event_groups.h>
+#include "common.h"
 #include "wlan_entity.h"
-
 
 // TODO: use smartconfig
 // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_smartconfig.html
@@ -41,10 +42,10 @@ class WlanManager {
    */
   esp_mqtt_client_handle_t mqtt_handle = nullptr;
   etl::optional<AP> _ap                = etl::nullopt;
-  std::vector<std::string> subscribed_topics{"/spot/control/#"};
+  etl::vector<std::string, common::MAX_SUB_TOPIC_COUNT> subscribed_topics{};
   sub_msg_chan_t _sub_msg_chan{8};
   TaskHandle_t _connect_task_handle = nullptr;
-  EventGroupHandle_t evt_grp = nullptr;
+  EventGroupHandle_t evt_grp        = nullptr;
 
 private:
   esp_err_t _register_wifi_handlers();
@@ -64,7 +65,7 @@ private:
   static void connect_task(void *pvParameters);
 
 public:
-  explicit WlanManager(EventGroupHandle_t evt_grp): evt_grp(evt_grp) {};
+  explicit WlanManager(EventGroupHandle_t evt_grp) : evt_grp(evt_grp){};
   [[nodiscard]] bool is_connected() const {
     return _is_connected;
   }
@@ -111,7 +112,6 @@ public:
   esp_err_t connect();
 
   esp_err_t publish(const MqttPubMsg &msg);
-  ;
 };
 
 struct WifiScanTaskParam {

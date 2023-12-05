@@ -34,14 +34,14 @@ extern "C" [[noreturn]] void app_main(void) {
 
   auto ap = wlan::AP{WLAN_SSID, WLAN_PASSWORD};
   ESP_LOGI(TAG, "ssid=%s; password=%s;", ap.ssid.c_str(), ap.password.c_str());
-  auto evt_grp = xEventGroupCreate();
-  auto manager = wlan::WlanManager(evt_grp);
+  static auto evt_grp = xEventGroupCreate();
+  static auto manager = wlan::WlanManager(evt_grp);
   manager.set_ap(std::move(ap));
   ESP_ERROR_CHECK(manager.wifi_init());
   ESP_ERROR_CHECK(manager.start_connect_task());
   ESP_ERROR_CHECK(manager.mqtt_init());
 
-  static auto sensor    = LoadCell{pin::D_OUT, pin::DP_SCK};
+  static auto sensor    = peripheral::LoadCell{pin::D_OUT, pin::DP_SCK};
   static auto valve     = peripheral::Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
   static auto punch_btn = peripheral::EdgeButton{pin::PUNCH_BTN};
 restart:
@@ -50,12 +50,12 @@ restart:
 
   punch_btn.on_press   = []() {};
   punch_btn.on_release = []() {
-    if (valve.is_enabled()) {
+    if (valve.is_active()) {
       ESP_LOGI(TAG, "disable valve");
-      valve.disable();
+      valve.idle();
     } else {
       ESP_LOGI(TAG, "enable valve");
-      valve.enable();
+      valve.successive();
     }
   };
 
