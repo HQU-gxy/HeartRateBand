@@ -8,7 +8,7 @@
 #include "wlan_manager.h"
 #include "utils.h"
 #include "app_nvs.h"
-#include <cbor.h>
+#include "value_reading.h"
 #include <driver/gpio.h>
 
 #define stringify_literal(x)     #x
