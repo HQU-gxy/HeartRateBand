@@ -5,6 +5,7 @@
 #ifndef WIT_HUB_COMMON_H
 #define WIT_HUB_COMMON_H
 
+#include <chrono>
 #include <driver/gpio.h>
 
 namespace common {
