@@ -15,7 +15,8 @@ idf_component_register(
     mqtt
     # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html#header-file
     nvs_flash
-    nanopb)
+    nanopb
+    tinycbor)
 
 # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html
 # C++23

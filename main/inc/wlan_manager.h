@@ -42,7 +42,7 @@ class WlanManager {
    */
   esp_mqtt_client_handle_t mqtt_handle = nullptr;
   etl::optional<AP> _ap                = etl::nullopt;
-  etl::vector<std::string, common::MAX_SUB_TOPIC_COUNT> subscribed_topics{};
+  etl::vector<std::string, common::MAX_SUB_TOPIC_COUNT> subscribed_topics{"/puncher/config/#"};
   sub_msg_chan_t _sub_msg_chan{8};
   TaskHandle_t _connect_task_handle = nullptr;
   EventGroupHandle_t evt_grp        = nullptr;

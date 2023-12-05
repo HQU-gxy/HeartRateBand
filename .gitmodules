@@ -16,3 +16,6 @@
 [submodule "components/nanopb/nanopb"]
 	path = components/nanopb/nanopb
 	url = https://github.com/nanopb/nanopb
+[submodule "components/tinycbor/tinycbor"]
+	path = components/tinycbor/tinycbor
+	url = https://github.com/intel/tinycbor
