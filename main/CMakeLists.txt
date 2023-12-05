@@ -1,13 +1,20 @@
 idf_component_register(
-  SRCS 
-    src/app_main.cpp 
-  INCLUDE_DIRS 
+  SRCS
+    src/app_main.cpp
+    src/wlan_manager.cpp
+    src/utils.cpp
+  INCLUDE_DIRS
     inc
-  REQUIRES 
+  REQUIRES
     arduino
     etl
     hx711
-    modbus_slave)
+    cpp-channel
+    # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/mqtt.html#header-file
+    mqtt
+    # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html#header-file
+    nvs_flash
+    nanopb)
 
 # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html
 # C++23

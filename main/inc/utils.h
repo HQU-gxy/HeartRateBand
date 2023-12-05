@@ -9,6 +9,10 @@
 
 namespace utils {
 
+size_t sprintHex(char *out, size_t outSize, const uint8_t *bytes, size_t size);
+
+std::string toHex(const uint8_t *bytes, size_t size);
+
 template <size_t N>
 class MovingAverage {
 private:
