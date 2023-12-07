@@ -206,6 +206,7 @@ restart:
     if (val.has_value()) {
       enqueue_value(values, val.value(), PUNCH_MEASUREMENT_COUNT);
     }
+    // TODO: disable task wdt
     vTaskDelay(1);
   };
 

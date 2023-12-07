@@ -13,7 +13,6 @@ namespace protocol {
 // https://www.rfc-editor.org/rfc/rfc8949.html#name-cbor-data-models
 // https://www.rfc-editor.org/rfc/rfc8949.html#name-cbor-tags-registry
 // https://www.rfc-editor.org/rfc/rfc8949.html#name-tagging-of-items
-constexpr uint8_t LOAD_CELL_READING_MAGIC = 0x10;
 
 enum class Command {
   ONCE        = 0x12,
@@ -41,10 +40,6 @@ encode_load_cell_reading(const It begin,
   CborEncoder encoder;
   cbor_encoder_init(&encoder, buffer, size, 0);
   auto len = std::distance(begin, end);
-  err      = cbor_encode_simple_value(&encoder, LOAD_CELL_READING_MAGIC);
-  if (err != CborNoError) {
-    return ue_t{err};
-  }
   CborEncoder container;
   err = cbor_encoder_create_array(&encoder, &container, len);
   if (err != CborNoError) {
