@@ -10,6 +10,7 @@
 #include "app_nvs.h"
 #include "value_reading.h"
 #include <freertos/timers.h>
+#include "event_handler.h"
 #include <driver/gpio.h>
 
 #define stringify_literal(x)     #x
@@ -131,6 +132,32 @@ restart:
                                             &timer,
                                             timer_cb);
   xTimerStart(timer_handle, portMAX_DELAY);
+
+  auto callbacks = handler::callbacks_t{
+      .on_once       = []() { valve.once(); },
+      .on_successive = []() { valve.successive(); },
+      .on_stop       = []() { valve.idle(); },
+      .on_tare       = []() { sensor.tare(); },
+  };
+
+  static auto handler_params = handler::param_t{
+      .callbacks    = std::move(callbacks),
+      .sub_msg_chan = *manager.sub_msg_chan(),
+  };
+
+  TaskHandle_t handler_handle;
+  auto res = xTaskCreate(handler::handle,
+                         "handler",
+                         4096,
+                         &handler_params,
+                         1,
+                         &handler_handle);
+
+  if (res != pdPASS) {
+    ESP_LOGE(TAG, "create handler task failed");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    goto restart;
+  }
 
   auto loop = []() {
     constexpr auto TAG = "loop";

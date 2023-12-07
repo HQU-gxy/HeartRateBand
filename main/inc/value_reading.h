@@ -15,6 +15,14 @@ namespace protocol {
 // https://www.rfc-editor.org/rfc/rfc8949.html#name-tagging-of-items
 constexpr uint8_t LOAD_CELL_READING_MAGIC = 0x10;
 
+enum class Command {
+  ONCE       = 0x12,
+  SUCCESSIVE = 0x13,
+  STOP       = 0x14,
+  TARE       = 0x20,
+  UNKNOWN,
+};
+
 /**
  * @brief encode a load cell reading into a CBOR byte array
  * @tparam It an iterator type that points to a floating point value
@@ -53,6 +61,33 @@ encode_load_cell_reading(const It begin,
   size_t sz = cbor_encoder_get_buffer_size(&encoder, buffer);
   return sz;
 };
+
+etl::expected<Command, CborError>
+decode_command(const uint8_t *buffer, size_t size) {
+  using ue_t = etl::unexpected<CborError>;
+  CborError err;
+  CborParser parser;
+  CborValue value;
+  cbor_parser_init(buffer, size, 0, &parser, &value);
+  uint8_t magic;
+  err = cbor_value_get_simple_type(&value, &magic);
+  if (err != CborNoError) {
+    return ue_t{err};
+  }
+  switch (magic) {
+    case static_cast<uint8_t>(Command::ONCE):
+      return Command::ONCE;
+    case static_cast<uint8_t>(Command::SUCCESSIVE):
+      return Command::SUCCESSIVE;
+    case static_cast<uint8_t>(Command::STOP):
+      return Command::STOP;
+    case static_cast<uint8_t>(Command::TARE):
+      return Command::TARE;
+    default:
+      return ue_t{CborErrorUnknownType};
+  }
+}
+
 }
 
 #endif // PUNCHER_VALUE_READING_H
