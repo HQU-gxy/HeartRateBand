@@ -14,8 +14,7 @@ private:
   gpio_num_t PD_SCK;
   HX711 Hx711{};
 
-  size_t per_kg = common::LOAD_CELL_DEFAULT_UNIT_PER_KG;
-  utils::SimpleMovingAverage<common::LOAD_CELL_BUF_SIZE> buf;
+  utils::ExponentMovingAverage<common::LOAD_CELL_MA_SIZE> buf;
 
 public:
   LoadCell(gpio_num_t d_out, gpio_num_t pd_sck) : DOUT(d_out), PD_SCK(pd_sck) {}
@@ -39,10 +38,14 @@ public:
     return true;
   }
 
+  void tare() {
+    Hx711.tare(10);
+  }
+
   void measure(uint8_t n = 1) {
     float temp = Hx711.get_units(n);
-    if (temp > static_cast<float>(per_kg)) {
-      buf.next(temp);
+    if (temp > static_cast<float>(common::LOAD_CELL_COEF)) {
+      buf.next(temp / common::LOAD_CELL_COEF);
     }
   }
 

@@ -14,9 +14,16 @@ namespace protocol {
 // https://www.rfc-editor.org/rfc/rfc8949.html#name-cbor-tags-registry
 // https://www.rfc-editor.org/rfc/rfc8949.html#name-tagging-of-items
 constexpr uint8_t LOAD_CELL_READING_MAGIC = 0x10;
+
+/**
+ * @brief encode a load cell reading into a CBOR byte array
+ * @tparam It an iterator type that points to a floating point value
+ */
+template <typename It>
+  requires std::is_floating_point_v<typename std::iterator_traits<It>::value_type>
 etl::expected<size_t, CborError>
-encode_load_cell_reading(const float *begin,
-                         const float *end,
+encode_load_cell_reading(const It begin,
+                         const It end,
                          uint8_t *buffer,
                          size_t size) {
   using ue_t = etl::unexpected<CborError>;

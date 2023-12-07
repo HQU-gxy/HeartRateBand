@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "app_nvs.h"
 #include "value_reading.h"
+#include <freertos/timers.h>
 #include <driver/gpio.h>
 
 #define stringify_literal(x)     #x
@@ -29,6 +30,16 @@ const char *WLAN_PASSWORD = stringify_expanded(WLAN_AP_PASSWORD);
 
 using namespace common;
 
+template <typename T>
+void enqueue_value(etl::ideque<T> &values, T value, size_t max_size) {
+  auto sz = values.size();
+  while (sz >= max_size) {
+    values.pop_front();
+    sz = values.size();
+  }
+  values.push_back(value);
+}
+
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
 extern "C" [[noreturn]] void app_main(void) {
   constexpr auto TAG = "main";
@@ -42,6 +53,8 @@ extern "C" [[noreturn]] void app_main(void) {
   ESP_ERROR_CHECK(manager.wifi_init());
   ESP_ERROR_CHECK(manager.start_connect_task());
   ESP_ERROR_CHECK(manager.mqtt_init());
+
+  static etl::deque<float, PUNCH_MEASUREMENT_COUNT> values;
 
   static auto sensor    = peripheral::LoadCell{pin::D_OUT, pin::DP_SCK};
   static auto valve     = peripheral::Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
@@ -80,12 +93,54 @@ restart:
   valve.begin();
   punch_btn.begin();
 
+  struct timer_param_t {
+    std::function<void()> callback;
+  };
+
+  auto send_msg = []() {
+    constexpr auto TAG    = "send_msg";
+    constexpr auto buf_sz = 256;
+    uint8_t buf[buf_sz];
+    auto res = protocol::encode_load_cell_reading(values.begin(), values.end(), buf, buf_sz);
+    if (res.has_value()) {
+      const auto sz = res.value();
+      ESP_LOGI(TAG, "encoded %d bytes", sz);
+      auto msg = wlan::MqttPubMsg{
+          .topic = "/puncher/reading",
+          .data  = std::vector<uint8_t>(buf, buf + sz),
+      };
+      manager.publish(msg);
+    } else {
+      ESP_LOGE(TAG, "encode failed: %d", res.error());
+    }
+  };
+
+  static auto timer = timer_param_t{
+      .callback = send_msg,
+  };
+
+  auto timer_cb = [](TimerHandle_t xTimer) {
+    auto param = pvTimerGetTimerID(xTimer);
+    auto &p    = *static_cast<timer_param_t *>(param);
+    p.callback();
+  };
+
+  TimerHandle_t timer_handle = xTimerCreate("send_msg",
+                                            common::PUNCH_MEASUREMENT_SEND_INTERVAL_MS / portTICK_PERIOD_MS,
+                                            pdTRUE,
+                                            &timer,
+                                            timer_cb);
+  xTimerStart(timer_handle, portMAX_DELAY);
+
   auto loop = []() {
     constexpr auto TAG = "loop";
-
     punch_btn.poll();
     valve.poll();
     sensor.measure();
+    auto val = sensor.average();
+    if (val.has_value()) {
+      enqueue_value(values, val.value(), PUNCH_MEASUREMENT_COUNT);
+    }
   };
 
   while (true) {
