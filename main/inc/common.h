@@ -24,8 +24,8 @@ namespace nvs {
   using punch_step_t            = uint8_t;
 }
 
-constexpr auto DEFAULT_DURATION                   = std::chrono::milliseconds(1000);
-constexpr auto LOAD_CELL_MA_SIZE                  = 30;
+constexpr auto DEFAULT_DURATION  = std::chrono::milliseconds(1000);
+constexpr auto LOAD_CELL_MA_SIZE = 10;
 /**
  * @brief the coefficient to convert the load cell reading
  *
@@ -39,8 +39,10 @@ constexpr auto LOAD_CELL_MA_SIZE                  = 30;
  * The exact value is to be measured.
  */
 static constexpr auto LOAD_CELL_COEF              = 10000;
+static constexpr auto LOAD_CELL_THRES             = 10000 / LOAD_CELL_COEF;
 constexpr auto MAX_SUB_TOPIC_COUNT                = 8;
 constexpr auto PUNCH_MEASUREMENT_COUNT            = 50;
+constexpr auto SAMPLE_INTERVAL_MS                 = 12;
 constexpr auto PUNCH_MEASUREMENT_SEND_INTERVAL_MS = 500;
 
 static constexpr auto ChanBit = BIT2;

@@ -14,6 +14,8 @@ struct callbacks_t {
   std::function<void()> on_successive;
   std::function<void()> on_stop;
   std::function<void()> on_tare;
+  std::function<void()> on_switch_disable;
+  std::function<void()> on_switch_enable;
 };
 
 struct param_t {

@@ -88,6 +88,42 @@ public:
     }
   }
 };
+
+class Switch {
+private:
+  gpio_num_t pin_;
+
+public:
+  explicit Switch(gpio_num_t pin) : pin_(pin) {}
+  /**
+   * @brief Whether the switch is enabled
+   *
+   * If disabled, the switch won't trigger any callbacks
+   */
+  bool en = true;
+  std::function<void()> on_open;
+  std::function<void()> on_close;
+
+  void begin() {
+    pinMode(pin_, INPUT);
+  }
+
+  void poll() {
+    if (!en) {
+      return;
+    }
+    if (digitalRead(pin_) > 0) {
+      if (on_open) {
+        on_open();
+      }
+    } else {
+      if (on_close) {
+        on_close();
+      }
+    }
+  }
+};
+
 }
 
 #endif // PUNCHER_BUTTON_H

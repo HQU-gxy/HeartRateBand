@@ -16,10 +16,12 @@ namespace protocol {
 constexpr uint8_t LOAD_CELL_READING_MAGIC = 0x10;
 
 enum class Command {
-  ONCE       = 0x12,
-  SUCCESSIVE = 0x13,
-  STOP       = 0x14,
-  TARE       = 0x20,
+  ONCE        = 0x12,
+  SUCCESSIVE  = 0x13,
+  STOP        = 0x14,
+  TARE        = 0x20,
+  BTN_DISABLE = 0x30,
+  BTN_ENABLE  = 0x31,
   UNKNOWN,
 };
 

@@ -25,6 +25,10 @@ etl::expected<Command, CborError> decode_command(const uint8_t *buffer, size_t s
       return Command::STOP;
     case static_cast<uint8_t>(Command::TARE):
       return Command::TARE;
+    case static_cast<uint8_t>(Command::BTN_DISABLE):
+      return Command::BTN_DISABLE;
+    case static_cast<uint8_t>(Command::BTN_ENABLE):
+      return Command::BTN_ENABLE;
     default:
       return ue_t{CborErrorUnknownType};
   }

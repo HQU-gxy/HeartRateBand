@@ -33,6 +33,14 @@ void handler::handle(void *pvParameters) {
             ESP_LOGI(TAG, "tare");
             callbacks.on_tare();
             break;
+          case Command::BTN_DISABLE:
+            ESP_LOGI(TAG, "btn_disable");
+            callbacks.on_switch_disable();
+            break;
+          case Command::BTN_ENABLE:
+            ESP_LOGI(TAG, "btn_enable");
+            callbacks.on_switch_enable();
+            break;
           default:
             std::unreachable();
         }

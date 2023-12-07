@@ -15,6 +15,10 @@ private:
   HX711 Hx711{};
 
   utils::ExponentMovingAverage<common::LOAD_CELL_MA_SIZE> buf;
+  /**
+   * @brief acts like a cell, each value can only be taken once
+   */
+  bool to_be_taken = false;
 
 public:
   LoadCell(gpio_num_t d_out, gpio_num_t pd_sck) : DOUT(d_out), PD_SCK(pd_sck) {}
@@ -43,14 +47,28 @@ public:
   }
 
   void measure(uint8_t n = 1) {
-    float temp = Hx711.get_units(n);
-    if (temp > static_cast<float>(common::LOAD_CELL_COEF)) {
-      buf.next(temp / common::LOAD_CELL_COEF);
+    if (!Hx711.is_ready()) {
+      return;
     }
+    float temp = Hx711.get_units(n);
+    buf.next(temp / common::LOAD_CELL_COEF);
+    to_be_taken = true;
   }
 
   etl::optional<float> average() {
-    return buf.get();
+    auto temp = buf.get();
+    if (temp > static_cast<float>(common::LOAD_CELL_THRES)) {
+      return temp;
+    }
+    return etl::nullopt;
+  }
+
+  etl::optional<float> take_average() {
+    if (to_be_taken) {
+      to_be_taken = false;
+      return average();
+    }
+    return etl::nullopt;
   }
 };
 }

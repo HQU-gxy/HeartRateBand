@@ -151,6 +151,9 @@ public:
   }
 
   void successive() {
+    if (state_ == PunchState::Successive) {
+      return;
+    }
     state_       = PunchState::Successive;
     auto now     = esp_timer_get_time();
     auto elapsed = now - disable_time_point;
@@ -158,6 +161,9 @@ public:
   }
 
   void once() {
+    if (state_ == PunchState::Once) {
+      return;
+    }
     state_       = PunchState::Once;
     auto now     = esp_timer_get_time();
     auto elapsed = now - disable_time_point;
@@ -165,6 +171,9 @@ public:
   }
 
   void idle() {
+    if (state_ == PunchState::Idle) {
+      return;
+    }
     state_             = PunchState::Idle;
     disable_time_point = esp_timer_get_time();
   }

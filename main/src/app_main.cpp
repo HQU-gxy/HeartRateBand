@@ -57,22 +57,25 @@ extern "C" [[noreturn]] void app_main(void) {
 
   static etl::deque<float, PUNCH_MEASUREMENT_COUNT> values;
 
-  static auto sensor    = peripheral::LoadCell{pin::D_OUT, pin::DP_SCK};
-  static auto valve     = peripheral::Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
-  static auto punch_btn = peripheral::EdgeButton{pin::PUNCH_BTN};
+  static auto sensor       = peripheral::LoadCell{pin::D_OUT, pin::DP_SCK};
+  static auto valve        = peripheral::Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
+  static auto punch_switch = peripheral::Switch{pin::PUNCH_BTN};
+  punch_switch.en          = true;
 restart:
   pinMode(pin::LED, OUTPUT);
   digitalWrite(pin::LED, HIGH);
 
-  punch_btn.on_press   = []() {};
-  punch_btn.on_release = []() {
-    valve.once();
+  punch_switch.on_close = []() {
+    valve.idle();
+  };
+  punch_switch.on_open = []() {
+    valve.successive();
   };
 
   auto last_step = app_nvs::get_punch_step();
   if (last_step.has_value()) {
     ESP_LOGI(TAG, "last valve step=%d", last_step.value());
-    valve.set_step(static_cast<peripheral::PunchStep>(last_step.value()));
+    // valve.set_step(static_cast<peripheral::PunchStep>(last_step.value()));
   }
 
   valve.on_step_change = [](peripheral::PunchStep step) {
@@ -87,25 +90,47 @@ restart:
   }
 
   valve.begin();
-  punch_btn.begin();
+  punch_switch.begin();
 
   struct timer_param_t {
     std::function<void()> callback;
+    TaskHandle_t handle;
   };
 
   auto send_msg = []() {
     constexpr auto TAG    = "send_msg";
     constexpr auto buf_sz = 256;
     uint8_t buf[buf_sz];
+    if (values.empty()) {
+      return;
+    }
+    auto dbg_str = [](const auto &values) {
+      std::string str;
+      str += "[";
+      auto sz = 0;
+      for (const auto &v : values) {
+        str += std::to_string(v);
+        sz++;
+        if (sz < values.size()) {
+          str += ", ";
+        }
+      }
+      str += "]";
+      return str;
+    };
+
+    auto dbg = dbg_str(values);
+    ESP_LOGI(TAG, "values: %s", dbg.c_str());
     auto res = protocol::encode_load_cell_reading(values.begin(), values.end(), buf, buf_sz);
     if (res.has_value()) {
       const auto sz = res.value();
-      ESP_LOGI(TAG, "encoded %d bytes", sz);
+      ESP_LOGI(TAG, "encoded %d bytes; reading size %d;", sz, values.size());
       auto msg = wlan::MqttPubMsg{
           .topic = "/puncher/reading",
           .data  = std::vector<uint8_t>(buf, buf + sz),
       };
       manager.publish(msg);
+      values.clear();
     } else {
       ESP_LOGE(TAG, "encode failed: %d", res.error());
     }
@@ -116,9 +141,21 @@ restart:
   };
 
   auto timer_cb = [](TimerHandle_t xTimer) {
-    auto param = pvTimerGetTimerID(xTimer);
-    auto &p    = *static_cast<timer_param_t *>(param);
-    p.callback();
+    auto p      = pvTimerGetTimerID(xTimer);
+    auto &param = *static_cast<timer_param_t *>(p);
+    auto fn     = [](void *pvParameters) {
+      auto &param = *static_cast<timer_param_t *>(pvParameters);
+      param.callback();
+      auto handle  = param.handle;
+      param.handle = nullptr;
+      vTaskDelete(handle);
+    };
+    xTaskCreate(fn,
+                "send_msg",
+                4096,
+                &param,
+                1,
+                &param.handle);
   };
 
   TimerHandle_t timer_handle = xTimerCreate("send_msg",
@@ -129,10 +166,16 @@ restart:
   xTimerStart(timer_handle, portMAX_DELAY);
 
   auto callbacks = handler::callbacks_t{
-      .on_once       = []() { valve.once(); },
-      .on_successive = []() { valve.successive(); },
-      .on_stop       = []() { valve.idle(); },
-      .on_tare       = []() { sensor.tare(); },
+      .on_once           = []() { valve.once(); },
+      .on_successive     = []() { valve.successive(); },
+      .on_stop           = []() { valve.idle(); },
+      .on_tare           = []() { sensor.tare(); },
+      .on_switch_disable = []() {
+        ESP_LOGI(TAG, "switch disable");
+        punch_switch.en = false; },
+      .on_switch_enable  = []() {
+        ESP_LOGI(TAG, "switch enable");
+        punch_switch.en = true; },
   };
 
   static auto handler_params = handler::param_t{
@@ -156,13 +199,14 @@ restart:
 
   auto loop = []() {
     constexpr auto TAG = "loop";
-    punch_btn.poll();
+    punch_switch.poll();
     valve.poll();
     sensor.measure();
-    auto val = sensor.average();
+    auto val = sensor.take_average();
     if (val.has_value()) {
       enqueue_value(values, val.value(), PUNCH_MEASUREMENT_COUNT);
     }
+    vTaskDelay(1);
   };
 
   while (true) {
