@@ -5,6 +5,7 @@ idf_component_register(
     src/utils.cpp
     src/app_nvs.cpp
     src/event_handler.cpp
+    src/value_reading.cpp
   INCLUDE_DIRS
     inc
   REQUIRES

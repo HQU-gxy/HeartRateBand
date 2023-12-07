@@ -66,13 +66,7 @@ restart:
 
   punch_btn.on_press   = []() {};
   punch_btn.on_release = []() {
-    if (valve.is_active()) {
-      ESP_LOGI(TAG, "disable valve");
-      valve.idle();
-    } else {
-      ESP_LOGI(TAG, "enable valve");
-      valve.successive();
-    }
+    valve.once();
   };
 
   auto last_step = app_nvs::get_punch_step();
@@ -91,6 +85,7 @@ restart:
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     goto restart;
   }
+
   valve.begin();
   punch_btn.begin();
 
