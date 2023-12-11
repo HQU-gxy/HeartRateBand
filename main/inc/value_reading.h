@@ -61,7 +61,6 @@ encode_load_cell_reading(const It begin,
 
 etl::expected<Command, CborError>
 decode_command(const uint8_t *buffer, size_t size);
-
 }
 
 #endif // PUNCHER_VALUE_READING_H

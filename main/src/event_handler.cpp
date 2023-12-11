@@ -44,6 +44,8 @@ void handler::handle(void *pvParameters) {
           default:
             std::unreachable();
         }
+      } else {
+        ESP_LOGE(TAG, "decode command: %s", cbor_error_string(res.error()));
       }
     }
   }

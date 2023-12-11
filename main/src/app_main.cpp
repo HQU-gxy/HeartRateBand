@@ -12,6 +12,7 @@
 #include <freertos/timers.h>
 #include "event_handler.h"
 #include <driver/gpio.h>
+#include <esp_task_wdt.h>
 
 #define stringify_literal(x)     #x
 #define stringify_expanded(x)    stringify_literal(x)
@@ -46,6 +47,12 @@ extern "C" void app_main(void) {
   constexpr auto TAG = "main";
   initArduino();
 
+  auto config = esp_task_wdt_config_t{
+      .timeout_ms    = 3000,
+      .trigger_panic = true,
+  };
+  ESP_ERROR_CHECK(esp_task_wdt_init(&config));
+
   auto ap = wlan::AP{WLAN_SSID, WLAN_PASSWORD};
   ESP_LOGI(TAG, "ssid=%s; password=%s;", ap.ssid.c_str(), ap.password.c_str());
   static auto evt_grp = xEventGroupCreate();
@@ -75,7 +82,7 @@ restart:
   auto last_step = app_nvs::get_punch_step();
   if (last_step.has_value()) {
     ESP_LOGI(TAG, "last valve step=%d", last_step.value());
-    // valve.set_step(static_cast<peripheral::PunchStep>(last_step.value()));
+    valve.set_step(static_cast<peripheral::PunchStep>(last_step.value()));
   }
 
   valve.on_step_change = [](peripheral::PunchStep step) {
@@ -104,6 +111,7 @@ restart:
     if (values.empty()) {
       return;
     }
+
     auto dbg_str = [](const auto &values) {
       std::string str;
       str += "[";
@@ -221,6 +229,7 @@ restart:
     auto &param = *static_cast<loop_param_t *>(pvParameters);
     while (true) {
       param.callback();
+      ESP_ERROR_CHECK(esp_task_wdt_reset());
     }
     std::unreachable();
   };
@@ -231,5 +240,7 @@ restart:
               &loop_param,
               1,
               &loop_param.handle);
+
+  ESP_ERROR_CHECK(esp_task_wdt_add(loop_param.handle));
   vTaskDelete(nullptr);
 }

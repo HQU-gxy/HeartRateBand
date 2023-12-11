@@ -63,7 +63,7 @@ private:
 
 public:
   void begin() {
-    pinMode(pin_, INPUT);
+    pinMode(pin_, INPUT_PULLUP);
   }
 
   /**
