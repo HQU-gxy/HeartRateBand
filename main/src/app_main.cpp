@@ -42,7 +42,7 @@ void enqueue_value(etl::ideque<T> &values, T value, size_t max_size) {
 }
 
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/timer.html#timeralarm
-extern "C" [[noreturn]] void app_main(void) {
+extern "C" void app_main(void) {
   constexpr auto TAG = "main";
   initArduino();
 
@@ -158,14 +158,14 @@ restart:
                 &param.handle);
   };
 
-  TimerHandle_t timer_handle = xTimerCreate("send_msg",
-                                            common::PUNCH_MEASUREMENT_SEND_INTERVAL_MS / portTICK_PERIOD_MS,
-                                            pdTRUE,
-                                            &timer,
-                                            timer_cb);
+  static TimerHandle_t timer_handle = xTimerCreate("send_msg",
+                                                   common::PUNCH_MEASUREMENT_SEND_INTERVAL_MS / portTICK_PERIOD_MS,
+                                                   pdTRUE,
+                                                   &timer,
+                                                   timer_cb);
   xTimerStart(timer_handle, portMAX_DELAY);
 
-  auto callbacks = handler::callbacks_t{
+  static auto callbacks = handler::callbacks_t{
       .on_once           = []() { valve.once(); },
       .on_successive     = []() { valve.successive(); },
       .on_stop           = []() { valve.idle(); },
@@ -183,7 +183,7 @@ restart:
       .sub_msg_chan = *manager.sub_msg_chan(),
   };
 
-  TaskHandle_t handler_handle;
+  static TaskHandle_t handler_handle;
   auto res = xTaskCreate(handler::handle,
                          "handler",
                          4096,
@@ -206,11 +206,30 @@ restart:
     if (val.has_value()) {
       enqueue_value(values, val.value(), PUNCH_MEASUREMENT_COUNT);
     }
-    // TODO: disable task wdt
-    vTaskDelay(1);
   };
 
-  while (true) {
-    loop();
-  }
+  struct loop_param_t {
+    std::function<void()> callback;
+    TaskHandle_t handle;
+  };
+
+  static auto loop_param = loop_param_t{
+      .callback = loop,
+  };
+
+  auto loop_task = [](void *pvParameters) {
+    auto &param = *static_cast<loop_param_t *>(pvParameters);
+    while (true) {
+      param.callback();
+    }
+    std::unreachable();
+  };
+
+  xTaskCreate(loop_task,
+              "loop",
+              4096,
+              &loop_param,
+              1,
+              &loop_param.handle);
+  vTaskDelete(nullptr);
 }
