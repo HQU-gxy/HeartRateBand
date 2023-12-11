@@ -20,6 +20,13 @@ private:
    */
   bool to_be_taken = false;
 
+  static constexpr auto TARE_COUNT = 10;
+
+  bool is_taring = false;
+  utils::SimpleMovingAverage<TARE_COUNT> tare_value;
+
+  static constexpr auto TAG = "LoadCell";
+
 public:
   LoadCell(gpio_num_t d_out, gpio_num_t pd_sck) : DOUT(d_out), PD_SCK(pd_sck) {}
 
@@ -43,14 +50,31 @@ public:
   }
 
   void tare() {
-    Hx711.tare(10);
+    is_taring = true;
   }
 
-  void measure(uint8_t n = 1) {
+  void measure() {
     if (!Hx711.is_ready()) {
       return;
     }
-    float temp = Hx711.get_units(n);
+
+    if (is_taring) {
+      if (tare_value.get_size() >= TARE_COUNT) {
+        float read = Hx711.read();
+        tare_value.next(read);
+        auto offset = std::floor(*tare_value.get());
+        Hx711.set_offset(offset);
+        is_taring = false;
+        tare_value.reset();
+        ESP_LOGI(TAG, "tare done, offset=%f", offset);
+      } else {
+        float read = Hx711.read();
+        tare_value.next(read);
+      }
+      return;
+    }
+
+    float temp = Hx711.get_units();
     buf.next(temp / common::LOAD_CELL_COEF);
     to_be_taken = true;
   }

@@ -38,6 +38,16 @@ public:
   etl::optional<float> get() {
     return value_;
   }
+
+  size_t get_size() {
+    return size;
+  }
+
+  void reset() {
+    sum  = 0;
+    size = 0;
+    value_.reset();
+  }
 };
 
 template <size_t N>
