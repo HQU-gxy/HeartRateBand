@@ -6,7 +6,7 @@
 
 namespace protocol {
 
-etl::expected<Command, CborError> decode_command(const uint8_t *buffer, size_t size) {
+etl::expected<request_t, CborError> decode_command(const uint8_t *buffer, size_t size) {
   constexpr static auto TAG = "decode_command";
   using ue_t                = etl::unexpected<CborError>;
   CborError err;
@@ -19,7 +19,7 @@ etl::expected<Command, CborError> decode_command(const uint8_t *buffer, size_t s
   }
 
   // A lambda to encapsulate the common operation
-  auto get_int_value = [](CborValue *value) -> etl::expected<int, CborError> {
+  const auto get_int_value = [](CborValue *value) -> etl::expected<int, CborError> {
     CborError err;
     auto t    = cbor_value_get_type(value);
     int magic = 0;
@@ -39,7 +39,7 @@ etl::expected<Command, CborError> decode_command(const uint8_t *buffer, size_t s
     return {magic};
   };
 
-  auto t = cbor_value_get_type(&value);
+  const auto t = cbor_value_get_type(&value);
   switch (t) {
     case CborArrayType: {
       err = cbor_value_enter_container(&value, &value);
@@ -68,17 +68,24 @@ etl::expected<Command, CborError> decode_command(const uint8_t *buffer, size_t s
   }
   switch (magic) {
     case static_cast<uint8_t>(Command::ONCE):
-      return Command::ONCE;
+      return request_t{Command::ONCE};
     case static_cast<uint8_t>(Command::SUCCESSIVE):
-      return Command::SUCCESSIVE;
+      return request_t{Command::SUCCESSIVE};
     case static_cast<uint8_t>(Command::STOP):
-      return Command::STOP;
+      return request_t{Command::STOP};
     case static_cast<uint8_t>(Command::TARE):
-      return Command::TARE;
+      return request_t{Command::TARE};
     case static_cast<uint8_t>(Command::BTN_DISABLE):
-      return Command::BTN_DISABLE;
+      return request_t{Command::BTN_DISABLE};
     case static_cast<uint8_t>(Command::BTN_ENABLE):
-      return Command::BTN_ENABLE;
+      return request_t{Command::BTN_ENABLE};
+    case static_cast<uint8_t>(change_duration_t::MAGIC): {
+      const auto duration = get_int_value(&value);
+      if (!duration.has_value()) {
+        return ue_t{duration.error()};
+      }
+      return request_t{change_duration_t{duration.value()}};
+    }
     default:
       return ue_t{CborUnknownError};
   }

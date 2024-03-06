@@ -7,6 +7,7 @@
 
 #include <etl/expected.h>
 #include <cbor.h>
+#include <variant>
 
 namespace protocol {
 // https://gist.github.com/soburi/4e1cc77df363e52ff0f366aeb23dac39
@@ -23,6 +24,13 @@ enum class Command {
   BTN_ENABLE  = 0x31,
   UNKNOWN,
 };
+
+struct change_duration_t {
+  static constexpr uint8_t MAGIC = 0x40;
+  int duration = 0;
+};
+
+using request_t = std::variant<Command, change_duration_t>;
 
 /**
  * @brief encode a load cell reading into a CBOR byte array
@@ -59,7 +67,7 @@ encode_load_cell_reading(const It begin,
   return sz;
 };
 
-etl::expected<Command, CborError>
+etl::expected<request_t, CborError>
 decode_command(const uint8_t *buffer, size_t size);
 }
 

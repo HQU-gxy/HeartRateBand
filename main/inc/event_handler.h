@@ -16,6 +16,7 @@ struct callbacks_t {
   std::function<void()> on_tare;
   std::function<void()> on_switch_disable;
   std::function<void()> on_switch_enable;
+  std::function<void(uint32_t)> on_change_duration;
 };
 
 struct param_t {
@@ -24,7 +25,6 @@ struct param_t {
 };
 
 [[noreturn]] void handle(void *pvParameters);
-;
 
 }
 

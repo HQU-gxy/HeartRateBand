@@ -174,16 +174,27 @@ restart:
   xTimerStart(timer_handle, portMAX_DELAY);
 
   static auto callbacks = handler::callbacks_t{
-      .on_once           = []() { valve.once(); },
-      .on_successive     = []() { valve.successive(); },
-      .on_stop           = []() { valve.idle(); },
-      .on_tare           = []() { sensor.tare(); },
-      .on_switch_disable = []() {
+      .on_once            = []() { valve.once(); },
+      .on_successive      = []() { valve.successive(); },
+      .on_stop            = []() { valve.idle(); },
+      .on_tare            = []() { sensor.tare(); },
+      .on_switch_disable  = []() {
         ESP_LOGI(TAG, "switch disable");
         punch_switch.en = false; },
-      .on_switch_enable  = []() {
+      .on_switch_enable   = []() {
         ESP_LOGI(TAG, "switch enable");
         punch_switch.en = true; },
+      .on_change_duration = [](int duration_ms) {
+        if (duration_ms < 100) {
+          ESP_LOGE(TAG, "duration too short: %d", duration_ms);
+          return;
+        }
+        if (duration_ms > 3000) {
+          ESP_LOGE(TAG, "duration too long: %d", duration_ms);
+          return;
+        }
+        valve.set_delay(peripheral::PunchStep::ReachingOut, std::chrono::milliseconds(duration_ms));
+        ESP_LOGI(TAG, "change Reaching out duration: %d", duration_ms); },
   };
 
   static auto handler_params = handler::param_t{
