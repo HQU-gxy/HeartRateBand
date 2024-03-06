@@ -95,7 +95,7 @@ restart:
   if (!ok) {
     ESP_LOGE(TAG, "sensor begin failed");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    goto restart;
+    // goto restart;
   }
 
   valve.begin();

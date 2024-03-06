@@ -12,60 +12,30 @@ etl::expected<request_t, CborError> decode_command(const uint8_t *buffer, size_t
   CborError err;
   CborParser parser;
   CborValue value;
-  int magic = 0;
-  err       = cbor_parser_init(buffer, size, 0, &parser, &value);
+  err = cbor_parser_init(buffer, size, 0, &parser, &value);
+  if (err != CborNoError) {
+    return ue_t{err};
+  }
+  if (!cbor_value_is_array(&value)) {
+    return ue_t{CborErrorIllegalType};
+  }
+
+  CborValue array_elem;
+  err = cbor_value_enter_container(&value, &array_elem);
   if (err != CborNoError) {
     return ue_t{err};
   }
 
-  // A lambda to encapsulate the common operation
-  const auto get_int_value = [](CborValue *value) -> etl::expected<int, CborError> {
-    CborError err;
-    auto t    = cbor_value_get_type(value);
-    int magic = 0;
-    switch (t) {
-      case CborIntegerType:
-        err = cbor_value_get_int(value, &magic);
-        break;
-      case CborSimpleType:
-        err = cbor_value_get_simple_type(value, reinterpret_cast<uint8_t *>(&magic));
-        break;
-      default:
-        return ue_t{CborUnknownError};
-    }
-    if (err != CborNoError) {
-      return ue_t{err};
-    }
-    return {magic};
-  };
-
-  const auto t = cbor_value_get_type(&value);
-  switch (t) {
-    case CborArrayType: {
-      err = cbor_value_enter_container(&value, &value);
-      if (err != CborNoError) {
-        return ue_t{err};
-      }
-      auto res = get_int_value(&value);
-      if (!res.has_value()) {
-        return ue_t{res.error()};
-      }
-      magic = res.value();
-      break;
-    }
-    case CborIntegerType:
-    case CborSimpleType: {
-      auto res = get_int_value(&value);
-      if (!res.has_value()) {
-        return ue_t{res.error()};
-      }
-      magic = res.value();
-      break;
-    }
-    default:
-      return ue_t{CborUnknownError};
-      break;
+  if (cbor_value_get_type(&array_elem) != CborIntegerType) {
+    return ue_t{CborErrorIllegalType};
   }
+
+  int magic = 0;
+  err       = cbor_value_get_int(&array_elem, &magic);
+  if (err != CborNoError) {
+    return ue_t{err};
+  }
+
   switch (magic) {
     case static_cast<uint8_t>(Command::ONCE):
       return request_t{Command::ONCE};
@@ -80,11 +50,21 @@ etl::expected<request_t, CborError> decode_command(const uint8_t *buffer, size_t
     case static_cast<uint8_t>(Command::BTN_ENABLE):
       return request_t{Command::BTN_ENABLE};
     case static_cast<uint8_t>(change_duration_t::MAGIC): {
-      const auto duration = get_int_value(&value);
-      if (!duration.has_value()) {
-        return ue_t{duration.error()};
+      err = cbor_value_advance(&array_elem);
+      if (err != CborNoError) {
+        return ue_t{err};
       }
-      return request_t{change_duration_t{duration.value()}};
+      if (!cbor_value_is_integer(&array_elem)) {
+        ESP_LOGE(TAG, "illegal type for array element; expected integer");
+        return ue_t{CborErrorIllegalType};
+      }
+      int duration = 0;
+      err          = cbor_value_get_int(&array_elem, &duration);
+      if (err != CborNoError) {
+        ESP_LOGE(TAG, "cbor_value_get_int: %s", cbor_error_string(err));
+        return ue_t{err};
+      }
+      return request_t{change_duration_t{duration}};
     }
     default:
       return ue_t{CborUnknownError};
