@@ -14,6 +14,7 @@ namespace pin {
   constexpr auto VALVE_DECREASE = GPIO_NUM_14;
   constexpr auto PUNCH_BTN      = GPIO_NUM_25;
   constexpr auto LED            = GPIO_NUM_2;
+
   constexpr auto D_OUT          = GPIO_NUM_34;
   constexpr auto DP_SCK         = GPIO_NUM_14;
 }
