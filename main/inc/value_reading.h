@@ -27,17 +27,17 @@ enum class Command {
 
 struct change_duration_t {
   static constexpr uint8_t MAGIC = 0x40;
-  int duration = 0;
+  int duration                   = 0;
 };
 
 using request_t = std::variant<Command, change_duration_t>;
 
 /**
  * @brief encode a load cell reading into a CBOR byte array
- * @tparam It an iterator type that points to a floating point value
+ * @tparam It an iterator type that points to a pair of float and uint16_t
  */
 template <typename It>
-  requires std::is_floating_point_v<typename std::iterator_traits<It>::value_type>
+  requires std::input_iterator<It>
 etl::expected<size_t, CborError>
 encode_load_cell_reading(const It begin,
                          const It end,
@@ -47,14 +47,21 @@ encode_load_cell_reading(const It begin,
   CborError err;
   CborEncoder encoder;
   cbor_encoder_init(&encoder, buffer, size, 0);
-  auto len = std::distance(begin, end);
+  const auto len = std::distance(begin, end) * 2;
   CborEncoder container;
   err = cbor_encoder_create_array(&encoder, &container, len);
   if (err != CborNoError) {
     return ue_t{err};
   }
+
+  // using pair_t = std::tuple<float, uint16_t>;
   for (auto it = begin; it != end; ++it) {
-    err = cbor_encode_float_as_half_float(&container, *it);
+    const auto &pair = *it;
+    err              = cbor_encode_float_as_half_float(&container, std::get<0>(pair));
+    if (err != CborNoError) {
+      return ue_t{err};
+    }
+    err = cbor_encode_uint(&container, std::get<1>(pair));
     if (err != CborNoError) {
       return ue_t{err};
     }

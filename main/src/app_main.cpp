@@ -62,7 +62,9 @@ extern "C" void app_main(void) {
   ESP_ERROR_CHECK(manager.start_connect_task());
   ESP_ERROR_CHECK(manager.mqtt_init());
 
-  static etl::deque<float, PUNCH_MEASUREMENT_COUNT> values;
+  // value, time_diff
+  using pair_t = std::tuple<float, uint16_t>;
+  static etl::deque<pair_t, PUNCH_MEASUREMENT_COUNT> values;
 
   static auto sensor       = peripheral::LoadCell{pin::D_OUT, pin::DP_SCK};
   static auto valve        = peripheral::Valve{pin::VALVE_ADD, pin::VALVE_DECREASE};
@@ -112,12 +114,16 @@ restart:
       return;
     }
 
-    auto dbg_str = [](const auto &values) {
+    const auto dbg_str = [](const decltype(values) &values) {
       std::string str;
       str += "[";
       auto sz = 0;
       for (const auto &v : values) {
-        str += std::to_string(v);
+        str += "(";
+        str += std::to_string(std::get<0>(v));
+        str += ", ";
+        str += std::to_string(std::get<1>(v));
+        str += ")";
         sz++;
         if (sz < values.size()) {
           str += ", ";
@@ -216,14 +222,27 @@ restart:
     goto restart;
   }
 
-  auto loop = []() {
+  static etl::optional<decltype(millis())> last_measurement = etl::nullopt;
+  const auto loop                                                 = []{
     constexpr auto TAG = "loop";
     punch_switch.poll();
     valve.poll();
     sensor.measure();
-    auto val = sensor.take_average();
+    const auto val = sensor.take_average();
     if (val.has_value()) {
-      enqueue_value(values, val.value(), PUNCH_MEASUREMENT_COUNT);
+      uint16_t diff;
+      if (last_measurement.has_value()) {
+        auto diff_ = millis() - last_measurement.value();
+        if (diff_ > 0xFFFF) {
+          diff = 0xFFFF;
+        } else {
+          diff = static_cast<uint16_t>(diff_);
+        }
+      } else {
+        diff = 0;
+      }
+      enqueue_value(values, std::make_tuple(val.value(), diff), PUNCH_MEASUREMENT_COUNT);
+      last_measurement = millis();
     }
   };
 
