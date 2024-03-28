@@ -1,0 +1,11 @@
+idf_component_register(
+  INCLUDE_DIRS
+    MAX3010x-Sensor-Library/src
+  SRCS
+    MAX3010x-Sensor-Library/src/MAX30100.cpp
+    MAX3010x-Sensor-Library/src/MAX30101.cpp
+    MAX3010x-Sensor-Library/src/MAX30102.cpp
+    MAX3010x-Sensor-Library/src/MAX30105.cpp
+  REQUIRES
+    arduino
+)

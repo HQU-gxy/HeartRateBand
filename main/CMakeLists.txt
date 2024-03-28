@@ -14,7 +14,7 @@ idf_component_register(
     # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html#header-file
     nvs_flash
     cib
-    max3010x
+    max3010x_lib
     tinycbor)
 
 # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html

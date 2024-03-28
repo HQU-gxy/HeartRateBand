@@ -1,6 +1,7 @@
 [submodule "components/arduino"]
 	path = components/arduino
 	url = https://github.com/espressif/arduino-esp32
+	branch = idf-release/v5.1
 [submodule "components/etl/etl"]
 	path = components/etl/etl
 	url = https://github.com/ETLCPP/etl
@@ -29,3 +30,6 @@
 [submodule "components/max3010x/SparkFun_MAX3010x_Sensor_Library"]
 	path = components/max3010x/SparkFun_MAX3010x_Sensor_Library
 	url = https://github.com/sparkfun/SparkFun_MAX3010x_Sensor_Library
+[submodule "components/max3010x_lib/MAX3010x-Sensor-Library"]
+	path = components/max3010x_lib/MAX3010x-Sensor-Library
+	url = https://github.com/devxplained/MAX3010x-Sensor-Library
