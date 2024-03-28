@@ -21,6 +21,10 @@ public:
   using time_t     = decltype(time_);
   using duration_t = std::chrono::duration<time_t, std::milli>;
 
+  /**
+   * @brief Get the time since the program starts in milliseconds
+   * @return the time since the program starts in milliseconds
+   */
   static time_t millis() {
     // esp_timer_get_time() returns the time since boot in microseconds
     return static_cast<time_t>(::esp_timer_get_time() / 1000);
