@@ -122,7 +122,6 @@ esp_err_t WlanManager::wifi_init() { // NOLINT(*-make-member-function-const)
   ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "Failed to init netif");
   ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "Failed to create event loop");
   esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-  assert(sta_netif);
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_RETURN_ON_ERROR(esp_wifi_init(&cfg), TAG, "Failed to init wifi");
   ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "Failed to set wifi mode");
