@@ -10,3 +10,19 @@
 [submodule "components/tinycbor/tinycbor"]
 	path = components/tinycbor/tinycbor
 	url = https://github.com/intel/tinycbor
+[submodule "components/compile-time-init-build"]
+	path = components/cib/compile-time-init-build
+	url = https://github.com/intel/compile-time-init-build
+[submodule "components/baremetal-concurrency/cpp-baremetal-concurrency"]
+	path = components/conc/cpp-baremetal-concurrency
+	url = https://github.com/intel/cpp-baremetal-concurrency
+[submodule "components/stdx/cpp-std-extensions"]
+	path = components/stdx/cpp-std-extensions
+	url = https://github.com/intel/cpp-std-extensions
+[submodule "components/fmt/fmt"]
+	path = components/fmt/fmt
+	url = https://github.com/fmtlib/fmt
+	branch = 10.x
+[submodule "components/boost_mp11/mp11"]
+	path = components/boost_mp11/mp11
+	url = https://github.com/boostorg/mp11

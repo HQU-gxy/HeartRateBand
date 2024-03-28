@@ -1,4 +1,4 @@
-#include <Arduino.h>
+#include "undef_arduino.h"
 #include "instant.h"
 #include "common.h"
 #include <etl/flat_map.h>
@@ -7,6 +7,7 @@
 #include <freertos/timers.h>
 #include <driver/gpio.h>
 #include <esp_task_wdt.h>
+#include <cib/cib.hpp>
 
 #define stringify_literal(x)     #x
 #define stringify_expanded(x)    stringify_literal(x)
