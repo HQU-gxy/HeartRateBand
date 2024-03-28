@@ -5,12 +5,11 @@
 #ifndef PUNCHER_INSTANT_H
 #define PUNCHER_INSTANT_H
 
-#include <etl/delegate.h>
 #include <chrono>
 
 /**
- * @brief A counter that counts the time since the program starts
- * @tparam T the type of the counter
+ * @brief A measurement of a monotonically nondecreasing clock.
+ * @tparam T the data type of the counter
  * @sa https://doc.rust-lang.org/std/time/struct.Instant.html
  */
 template <std::unsigned_integral T = size_t>
@@ -21,17 +20,12 @@ public:
   using time_t     = decltype(time_);
   using duration_t = std::chrono::duration<time_t, std::milli>;
 
-  /**
-   * @brief Get the time since the program starts in milliseconds
-   * @return the time since the program starts in milliseconds
-   */
   static time_t millis() {
-    // esp_timer_get_time() returns the time since boot in microseconds
-    return static_cast<time_t>(::esp_timer_get_time() / 1000);
+    return static_cast<time_t>(::millis());
   }
 
   Instant() {
-    this->time_ = millis();
+    this->time_ = this->millis();
   }
 
   static Instant now() {
@@ -65,10 +59,10 @@ public:
    * @param ms The time interval in milliseconds.
    * @return Returns true if the elapsed time is greater than or equal to the input time interval, otherwise returns false.
    */
-  [[nodiscard]] bool every_ms(const time_t ms) {
+  [[nodiscard]] bool mut_every_ms(const time_t ms) {
     const bool gt = this->elapsed_ms() >= ms;
     if (gt) {
-      this->reset();
+      this->mut_reset();
       return true;
     }
     return false;
@@ -80,20 +74,27 @@ public:
   }
 
   template <typename Rep, typename Period>
-  [[nodiscard]] bool every(const std::chrono::duration<Rep, Period> duration) {
+  [[nodiscard]] bool mut_every(const std::chrono::duration<Rep, Period> duration) {
     const bool gt = this->has_elapsed(duration);
     if (gt) {
-      this->reset();
+      this->mut_reset();
       return true;
     }
     return false;
   }
 
-  void reset() {
+  void mut_reset() {
     this->time_ = millis();
   }
 
-  [[nodiscard]] duration_t elapsed_and_reset() {
+  /**
+   * @deprecated use `mut_reset` instead
+   */
+  [[deprecated("use `mut_reset` instead")]] void reset() {
+    mut_reset();
+  }
+
+  [[nodiscard]] duration_t mut_elapsed_and_reset() {
     const auto now = static_cast<time_t>(millis());
     decltype(now) diff;
     if (now < this->time_) {

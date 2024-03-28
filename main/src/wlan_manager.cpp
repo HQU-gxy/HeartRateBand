@@ -251,7 +251,7 @@ esp_err_t WlanManager::_register_mqtt_handlers() {
         auto sub_data  = std::vector<uint8_t>(event.data, event.data + event.data_len);
         auto sub_topic = std::string(event.topic, event.topic_len);
         ESP_LOGI(TAG, "topic=%s (%d), data=%s (%d)", sub_topic.c_str(), sub_topic.size(),
-                 utils::toHex(sub_data.data(), sub_data.size()).c_str(), sub_data.size());
+                 utils::to_hex(sub_data.data(), sub_data.size()).c_str(), sub_data.size());
         auto sub_msg = MqttSubMsg{.topic = std::move(sub_topic), .data = std::move(sub_data)};
         manager._sub_msg_chan << std::move(sub_msg);
         xEventGroupSetBits(manager.evt_grp, common::ChanBit);

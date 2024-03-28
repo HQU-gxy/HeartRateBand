@@ -14,7 +14,7 @@ struct MqttPubMsg {
   std::string topic;
   std::vector<uint8_t> data;
   int qos = 0;
-  // retain flag
+  // https://www.hivemq.com/blog/mqtt-essentials-part-8-retained-messages/
   int retain = 0;
 };
 

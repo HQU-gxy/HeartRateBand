@@ -7,6 +7,7 @@
 #include <freertos/timers.h>
 #include <driver/gpio.h>
 #include <esp_task_wdt.h>
+#include <MAX30105.h>
 #include <cib/cib.hpp>
 
 #define stringify_literal(x)     #x

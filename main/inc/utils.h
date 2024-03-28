@@ -9,9 +9,9 @@
 
 namespace utils {
 
-size_t sprintHex(char *out, size_t outSize, const uint8_t *bytes, size_t size);
+size_t sprint_hex(char *out, size_t outSize, const uint8_t *bytes, size_t size);
 
-std::string toHex(const uint8_t *bytes, size_t size);
+std::string to_hex(const uint8_t *bytes, size_t size);
 
 template <size_t N>
 class SimpleMovingAverage {
@@ -22,7 +22,7 @@ private:
 
 public:
   SimpleMovingAverage() = default;
-  float next(float value) {
+  float next(const float value) {
     if (size < N) {
       sum += value;
       size++;
@@ -76,14 +76,16 @@ public:
 };
 
 // helper constant for the visitor #3
-template<class>
+template <class>
 inline constexpr bool always_false_v = false;
 
 // helper type for the visitor #4
-template<class... Ts>
-struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
 // explicit deduction guide (not needed as of C++20)
-template<class... Ts>
+template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 }
 
