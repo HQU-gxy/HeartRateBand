@@ -11,13 +11,11 @@ idf_component_register(
   REQUIRES
     arduino
     etl
-    hx711
     cpp-channel
     # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/mqtt.html#header-file
     mqtt
     # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html#header-file
     nvs_flash
-    nanopb
     tinycbor)
 
 # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html

@@ -1,21 +1,12 @@
 [submodule "components/arduino"]
 	path = components/arduino
 	url = https://github.com/espressif/arduino-esp32
-[submodule "components/modbus_slave/ArduinoModbusSlave"]
-	path = components/modbus_slave/ArduinoModbusSlave
-	url = https://github.com/yaacov/ArduinoModbusSlave
-[submodule "components/hx711/HX711"]
-	path = components/hx711/HX711
-	url = https://github.com/bogde/HX711
 [submodule "components/etl/etl"]
 	path = components/etl/etl
 	url = https://github.com/ETLCPP/etl
 [submodule "components/cpp-channel/cpp-channel"]
 	path = components/cpp-channel/cpp-channel
 	url = https://github.com/andreiavrammsd/cpp-channel
-[submodule "components/nanopb/nanopb"]
-	path = components/nanopb/nanopb
-	url = https://github.com/nanopb/nanopb
 [submodule "components/tinycbor/tinycbor"]
 	path = components/tinycbor/tinycbor
 	url = https://github.com/intel/tinycbor
