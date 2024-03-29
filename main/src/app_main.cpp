@@ -68,13 +68,13 @@ restart:
   sensor.setLedCurrent(sensor.LED_RED, 0xff);
 
   // for SpO2 only
-  sensor.setSamplingRate(sensor.SAMPLING_RATE_800SPS);
-  sensor.setSampleAveraging(sensor.SMP_AVE_1);
-  sensor.setMode(sensor.MODE_SPO2);
-  sensor.setADCRange(sensor.ADC_RANGE_16384NA);
-  sensor.setResolution(sensor.RESOLUTION_17BIT_215US);
-  sensor.setLedCurrent(sensor.LED_IR, 0xff);
-  sensor.setLedCurrent(sensor.LED_RED, 0xff);
+  // sensor.setSamplingRate(sensor.SAMPLING_RATE_800SPS);
+  // sensor.setSampleAveraging(sensor.SMP_AVE_1);
+  // sensor.setMode(sensor.MODE_SPO2);
+  // sensor.setADCRange(sensor.ADC_RANGE_16384NA);
+  // sensor.setResolution(sensor.RESOLUTION_17BIT_215US);
+  // sensor.setLedCurrent(sensor.LED_IR, 0xff);
+  // sensor.setLedCurrent(sensor.LED_RED, 0xff);
 
   static constexpr auto BUFFER_COUNT = 200;
   static constexpr uint8_t STRIDE[]  = {1, 2};
