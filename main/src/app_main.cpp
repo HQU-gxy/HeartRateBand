@@ -54,7 +54,6 @@ static constexpr auto i2c_task = [] {
 restart:
   bool ok    = sensor.begin();
   bool ok_   = sensor.setSamplingRate(sensor.SAMPLING_RATE_400SPS);
-  using ue_t = etl::unexpected<CborError>;
   if (not(ok or ok_)) {
     ESP_LOGE("i2c_task", "MAX30105 not found or setSamplingRate failed. Please check the wiring");
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -117,8 +116,8 @@ restart:
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
   ESP_LOGI("i2c_task", "Socket created, sending to %s:%d", HOST_IP, HOST_PORT);
 
-  const auto loop = [dest_addr] {
-    const auto to_down_stream = [dest_addr](etl::span<uint8_t> buf) {
+  const auto loop = [dest_addr, sock, &re_init] {
+    const auto to_down_stream = [dest_addr, sock](etl::span<uint8_t> buf) {
       auto addr           = dest_addr;
       const auto addr_ptr = reinterpret_cast<sockaddr *>(&addr);
       const auto err      = sendto(sock, buf.data(), buf.size(), 0, addr_ptr, sizeof(dest_addr));
@@ -180,5 +179,6 @@ extern "C" void app_main(void) {
   ESP_ERROR_CHECK(manager.wifi_init());
   ESP_ERROR_CHECK(manager.start_connect_task());
   ESP_ERROR_CHECK(manager.mqtt_init());
+  i2c_task();
   vTaskDelete(nullptr);
 }
