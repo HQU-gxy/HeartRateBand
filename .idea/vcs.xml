@@ -10,6 +10,7 @@
     <mapping directory="$PROJECT_DIR$/components/etl/etl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/fmt/fmt" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/max3010x/SparkFun_MAX3010x_Sensor_Library" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/components/max3010x_lib/MAX3010x-Sensor-Library" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/stdx/cpp-std-extensions" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/tinycbor/tinycbor" vcs="Git" />
     <mapping directory="/Volumes/External/esp-idf" vcs="Git" />

@@ -3,14 +3,18 @@
 #include "common.h"
 #include <etl/flat_map.h>
 #include "wlan_manager.h"
-#include "utils.h"
+#include <lwip/sockets.h>
 #include <freertos/timers.h>
 #include <driver/i2c.h>
 #include <driver/gpio.h>
 #include <esp_task_wdt.h>
 #include <MAX30102.h>
+#include <cbor.h>
 #include <etl/vector.h>
+#include <etl/span.h>
+#include <etl/expected.h>
 #include <cib/cib.hpp>
+#include "utils.h"
 
 #define stringify_literal(x)     #x
 #define stringify_expanded(x)    stringify_literal(x)
@@ -24,45 +28,135 @@
 #define WLAN_AP_PASSWORD default
 #endif
 
+constexpr auto HOST_IP       = "192.168.2.228";
+constexpr uint16_t HOST_PORT = 8080;
+
+using namespace common;
+
 const char *WLAN_SSID     = stringify_expanded(WLAN_AP_SSID);
 const char *WLAN_PASSWORD = stringify_expanded(WLAN_AP_PASSWORD);
 
-using namespace common;
+#define CBOR_RETURN_WHEN_ERROR(expr)    \
+  do {                                  \
+    CborError err = (expr);             \
+    if (err != CborNoError) return err; \
+  } while (0)
+
+#define CBOR_RETURN_UE_WHEN_ERROR(expr)                             \
+  do {                                                              \
+    CborError err = (expr);                                         \
+    if (err != CborNoError) return etl::unexpected<CborError>{err}; \
+  } while (0)
 
 // https://github.com/espressif/esp-idf/tree/master/examples/protocols/sockets/udp_client
 static constexpr auto i2c_task = [] {
   static MAX30102 sensor{};
 restart:
-  bool ok  = sensor.begin();
-  bool ok_ = sensor.setSamplingRate(sensor.SAMPLING_RATE_400SPS);
+  bool ok    = sensor.begin();
+  bool ok_   = sensor.setSamplingRate(sensor.SAMPLING_RATE_400SPS);
+  using ue_t = etl::unexpected<CborError>;
   if (not(ok or ok_)) {
     ESP_LOGE("i2c_task", "MAX30105 not found or setSamplingRate failed. Please check the wiring");
     vTaskDelay(pdMS_TO_TICKS(1000));
     goto restart;
   }
-  constexpr auto BUFFER_SIZE = 200;
-  // TODO: use COBS
-  // it just a array of uint32_t as buffer
-  static etl::vector<uint32_t, BUFFER_SIZE> red_buffer{};
-  static etl::vector<uint32_t, BUFFER_SIZE> ir_buffer{};
+
+  static constexpr auto BUFFER_COUNT = 200;
+  constexpr auto BUFFER_SIZE         = ((BUFFER_COUNT + 10) * sizeof(uint32_t) * 2);
+
+  // https://intel.github.io/tinycbor/current/a00046.html
+  static etl::array<uint8_t, BUFFER_SIZE> buffer{};
+
+  static CborEncoder encoder{};
+  static CborEncoder map_encoder{};
+  static CborEncoder red_encoder{};
+  static CborEncoder ir_encoder{};
+
+  constexpr auto re_init = []() -> CborError {
+    cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
+
+    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_map(&encoder, &map_encoder, 2));
+
+    CBOR_RETURN_WHEN_ERROR(cbor_encode_text_stringz(&map_encoder, "red"));
+    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&map_encoder, &red_encoder, BUFFER_COUNT));
+
+    CBOR_RETURN_WHEN_ERROR(cbor_encode_text_stringz(&map_encoder, "ir"));
+    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&map_encoder, &ir_encoder, BUFFER_COUNT));
+
+    return CborNoError;
+  };
+
   sensor.setMode(sensor.MODE_RED_IR);
   sensor.setADCRange(sensor.ADC_RANGE_8192NA);
   sensor.setResolution(sensor.RESOLUTION_17BIT_215US);
-  for (;;) {
-    const auto sample = sensor.readSample(1000);
+  const auto err = re_init();
+  if (err != CborNoError) {
+    ESP_LOGE("i2c_task", "re_init cbor buffer failed: %s (%d)", cbor_error_string(err), err);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    goto restart;
+  }
+
+  // ******* UDP *******
+
+  using socketaddr_in_t = struct sockaddr_in;
+  using timeval_t       = struct timeval;
+
+  auto dest_addr            = socketaddr_in_t{};
+  dest_addr.sin_addr.s_addr = inet_addr(HOST_IP);
+  dest_addr.sin_family      = AF_INET;
+  dest_addr.sin_port        = htons(HOST_PORT);
+  const auto sock           = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+  if (sock < 0) {
+    ESP_LOGE("i2c_task", "Unable to create socket: errno %d", errno);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    goto restart;
+  }
+
+  auto timeout   = timeval_t{};
+  timeout.tv_sec = 5;
+  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  ESP_LOGI("i2c_task", "Socket created, sending to %s:%d", HOST_IP, HOST_PORT);
+
+  const auto loop = [dest_addr] {
+    const auto to_down_stream = [dest_addr](etl::span<uint8_t> buf) {
+      auto addr           = dest_addr;
+      const auto addr_ptr = reinterpret_cast<sockaddr *>(&addr);
+      const auto err      = sendto(sock, buf.data(), buf.size(), 0, addr_ptr, sizeof(dest_addr));
+      if (err < 0) {
+        ESP_LOGE("i2c_task", "Error occurred during sending: errno %d", errno);
+      }
+    };
+    const auto sample = sensor.readSample(100);
     if (not sample.valid) {
-      continue;
+      return;
     }
-    red_buffer.push_back(sample.red);
-    ir_buffer.push_back(sample.ir);
-    // remember a IR reading at unblocked state (when the sensor is not attached to a finger/arm)
-    // if delta large than threshold then something is blocking the sensor
-    if (red_buffer.size() == BUFFER_SIZE) {
-      // to UDP
-      // What's the sample rate again?
-      red_buffer.clear();
-      ir_buffer.clear();
+    const auto red_err = cbor_encode_uint(&red_encoder, sample.red);
+    const auto ir_err  = cbor_encode_uint(&ir_encoder, sample.ir);
+    const bool is_full = red_err == CborErrorOutOfMemory or ir_err == CborErrorOutOfMemory;
+    if (is_full) {
+      static constexpr auto close_and_get_size = [] -> etl::expected<size_t, CborError> {
+        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&map_encoder, &red_encoder));
+        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&map_encoder, &ir_encoder));
+        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&encoder, &map_encoder));
+        const auto len = cbor_encoder_get_buffer_size(&encoder, buffer.data());
+        return len;
+      };
+      const auto len_ = close_and_get_size();
+      if (not len_) {
+        ESP_LOGE("i2c_task", "close_and_get_size failed: %s (%d)", cbor_error_string(len_.error()), len_.error());
+        re_init();
+        return;
+      }
+      const auto len = len_.value();
+      ESP_LOGI("i2c_task", "cbor buffer size: %d", len);
+      auto down = etl::span{buffer.data(), len};
+      to_down_stream(down);
+      re_init();
     }
+  };
+
+  for (;;) {
+    loop();
   }
 };
 

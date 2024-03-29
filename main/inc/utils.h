@@ -7,7 +7,99 @@
 
 #include <etl/optional.h>
 
+#ifdef htons
+#undef htons
+#endif
+
+#ifdef ntohs
+#undef ntohs
+#endif
+
+#ifdef htonl
+#undef htonl
+#endif
+
+#ifdef ntohl
+#undef ntohl
+#endif
+
 namespace utils {
+// https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+inline uint16_t htons(uint16_t val) {
+  if constexpr (std::endian::native == std::endian::little) {
+#if defined __has_builtin
+#if __has_builtin(__builtin_bswap16)
+#define HAS_BUILTIN_BSWAP16
+#endif
+#endif
+
+#ifdef HAS_BUILTIN_BSWAP16
+    return __builtin_bswap16(val);
+#else
+#warning "no builtin bswap16, use naive implementation"
+    return (val << 8) | (val >> 8);
+#endif
+  } else {
+    return val;
+  }
+}
+
+inline uint16_t ntohs(uint16_t val) {
+  if constexpr (std::endian::native == std::endian::little) {
+#if defined __has_builtin
+#if __has_builtin(__builtin_bswap16)
+#define HAS_BUILTIN_BSWAP16
+#endif
+#endif
+
+#ifdef HAS_BUILTIN_BSWAP16
+    return __builtin_bswap16(val);
+#else
+#warning "no builtin bswap16, use naive implementation"
+    return (val << 8) | (val >> 8);
+#endif
+  } else {
+    return val;
+  }
+}
+
+inline uint32_t htonl(uint32_t val) {
+  if constexpr (std::endian::native == std::endian::little) {
+#if defined __has_builtin
+#if __has_builtin(__builtin_bswap32)
+#define HAS_BUILTIN_BSWAP32
+#endif
+#endif
+
+#ifdef HAS_BUILTIN_BSWAP32
+    return __builtin_bswap32(val);
+#else
+#warning "no builtin bswap32, use naive implementation"
+    return (val << 24) | ((val << 8) & 0x00ff0000) | ((val >> 8) & 0x0000ff00) | (val >> 24);
+#endif
+  } else {
+    return val;
+  }
+}
+
+inline uint32_t ntohl(uint32_t val) {
+  if constexpr (std::endian::native == std::endian::little) {
+#if defined __has_builtin
+#if __has_builtin(__builtin_bswap32)
+#define HAS_BUILTIN_BSWAP32
+#endif
+#endif
+
+#ifdef HAS_BUILTIN_BSWAP32
+    return __builtin_bswap32(val);
+#else
+#warning "no builtin bswap32, use naive implementation"
+    return (val << 24) | ((val << 8) & 0x00ff0000) | ((val >> 8) & 0x0000ff00) | (val >> 24);
+#endif
+  } else {
+    return val;
+  }
+}
 
 size_t sprint_hex(char *out, size_t outSize, const uint8_t *bytes, size_t size);
 
@@ -88,5 +180,10 @@ struct overloaded : Ts... {
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 }
+
+static constexpr auto htons = utils::htons;
+static constexpr auto ntohs = utils::ntohs;
+static constexpr auto htonl = utils::htonl;
+static constexpr auto ntohl = utils::ntohl;
 
 #endif // PUNCHER_UTILS_H
