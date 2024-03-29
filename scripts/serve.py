@@ -11,17 +11,18 @@ NDArray = np.ndarray
 
 ArrayType = Int[NDArray, "... 2"]
 
+
 async def main():
     async with await create_udp_socket(family=socket.AF_INET,
                                        local_port=8080,
                                        local_host="0.0.0.0") as sock:
         while True:
-            data, addr = await sock.receive()
-            arr = np.array(cbor.loads(data))
-            logger.info(f"len(data)={len(data)} from {addr}")
-            check_type("arr", arr, ArrayType)
-            red = arr[:, 0]
-            ir = arr[:, 1]
+            b, addr = await sock.receive()
+            data: any = cbor.loads(b)  # type: ignore
+            strides = list(data[0])
+            arr = np.array(data[1]).reshape((-1, strides[1]))
+            logger.info(f"len(data)={len(b)} from {addr}")
+            logger.info(f"arr={arr}")
 
 
 if __name__ == "__main__":
