@@ -17,6 +17,9 @@ from streamlit import config as st_config
 from streamlit.web.bootstrap import run as st_run
 from streamlit.runtime.scriptrunner.script_run_context import add_script_run_ctx, get_script_run_ctx
 from streamlit import session_state
+import pyarrow as pa
+import pyarrow.parquet as pq
+from fastparquet import write
 from plotly.graph_objects import Scatter
 from typing import Any, Dict, Tuple, List, TypedDict
 from time import time
@@ -29,20 +32,46 @@ ArrayType = Int[NDArray, "... 2"]
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8080
 
+BATCH_SIZE = 10_000
+
 
 async def run_udp(host: str, port: int,
                   channel: MemoryObjectSendStream[NDArray]):
     logger.info(f"Listening on {host}:{port}")
-    async with await create_udp_socket(family=socket.AF_INET,
-                                       local_port=port,
-                                       local_host=host) as sock:
-        while True:
-            b, addr = await sock.receive()
-            logger.info(f"len(data)={len(b)} from {addr}")
-            data: any = cbor.loads(b)  # type: ignore
-            strides = list(data[0])
-            arr = np.array(data[1]).reshape((-1, strides[1]))
-            await channel.send(arr)
+    # https://stackoverflow.com/questions/64791558/create-parquet-files-from-stream-in-python-in-memory-efficient-manner
+    # https://github.com/dask/fastparquet/issues/476
+    schema = pa.schema([("red", pa.uint32())])
+    acc = np.zeros((0, 2), dtype=np.uint32)
+    writer = pq.ParquetWriter("red.parquet", schema)
+    try:
+        async with await create_udp_socket(family=socket.AF_INET,
+                                           local_port=port,
+                                           local_host=host) as sock:
+            while True:
+                b, addr = await sock.receive()
+                logger.info(f"len(data)={len(b)} from {addr}")
+                data: any = cbor.loads(b)  # type: ignore
+                strides = list(data[0])
+                arr = np.array(data[1]).reshape((-1, strides[1]))
+                await channel.send(arr)
+                acc = np.vstack((acc, arr))
+                count = acc.shape[0]
+                if count >= BATCH_SIZE:
+                    table = pa.Table.from_arrays(
+                        [pa.array(acc[:, 0], type=pa.uint32())], schema=schema)
+                    writer.write_table(table)
+
+                    acc = np.zeros((0, 2), dtype=np.uint32)
+    except KeyboardInterrupt:
+        # write the remaining data
+        logger.warning("KeyboardInterrupt. Try to write the remaining data.")
+        table = pa.Table.from_arrays([pa.array(acc[:, 0], type=pa.uint32())],
+                                     schema=schema)
+        writer.write_table(table)
+        writer.close()
+    except Exception as e:
+        logger.exception(e)
+        writer.close()
 
 
 def st_main(channel: MemoryObjectReceiveStream[NDArray]):
@@ -55,14 +84,14 @@ def st_main(channel: MemoryObjectReceiveStream[NDArray]):
     def sync_iter_channel():
         while True:
             try:
-                data = channel.receive_nowait().reshape(-1, 2)
+                data = channel.receive_nowait()
                 yield data
             except anyio.WouldBlock:
                 pass
 
     async def async_iter_channel():
         async for data in channel:
-            yield data.reshape(-1, 2)
+            yield data
 
     # for 400 samples per second
     # interval 2.5
