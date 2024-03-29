@@ -1,10 +1,12 @@
 import socket
+from tokenize import Single
 import numpy as np
 from jaxtyping import Int, Float
 from loguru import logger
 import anyio
 import asyncio
 from anyio import create_udp_socket, run, create_memory_object_stream
+from anyio.abc import UDPSocket
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from anyio.to_thread import run_sync
 from threading import Thread
@@ -24,6 +26,8 @@ from plotly.graph_objects import Scatter
 from typing import Any, Dict, Tuple, List, TypedDict
 from time import time
 from typeguard import typechecked, check_type
+from npy_append_array import NpyAppendArray
+import npy_append_array
 
 NDArray = np.ndarray
 
@@ -32,7 +36,7 @@ ArrayType = Int[NDArray, "... 2"]
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8080
 
-BATCH_SIZE = 10_000
+BATCH_SIZE = 5_000
 
 
 async def run_udp(host: str, port: int,
@@ -42,13 +46,17 @@ async def run_udp(host: str, port: int,
     # https://github.com/dask/fastparquet/issues/476
     schema = pa.schema([("red", pa.uint32())])
     acc = np.zeros((0, 2), dtype=np.uint32)
-    writer = pq.ParquetWriter("red.parquet", schema)
+
+    async def sock_recv_gen(sock: UDPSocket):
+        while True:
+            b, addr = await sock.receive()
+            yield b, addr
+
     try:
         async with await create_udp_socket(family=socket.AF_INET,
                                            local_port=port,
                                            local_host=host) as sock:
-            while True:
-                b, addr = await sock.receive()
+            async for b, addr in sock_recv_gen(sock):
                 logger.info(f"len(data)={len(b)} from {addr}")
                 data: any = cbor.loads(b)  # type: ignore
                 strides = list(data[0])
@@ -57,21 +65,22 @@ async def run_udp(host: str, port: int,
                 acc = np.vstack((acc, arr))
                 count = acc.shape[0]
                 if count >= BATCH_SIZE:
-                    table = pa.Table.from_arrays(
-                        [pa.array(acc[:, 0], type=pa.uint32())], schema=schema)
-                    writer.write_table(table)
 
+                    def save_as_np():
+                        logger.info("write chunk to data.npy")
+                        with NpyAppendArray("data.npy") as npaa:
+                            npaa.append(acc)
+
+                    await run_sync(save_as_np)
                     acc = np.zeros((0, 2), dtype=np.uint32)
     except KeyboardInterrupt:
         # write the remaining data
         logger.warning("KeyboardInterrupt. Try to write the remaining data.")
-        table = pa.Table.from_arrays([pa.array(acc[:, 0], type=pa.uint32())],
-                                     schema=schema)
-        writer.write_table(table)
-        writer.close()
     except Exception as e:
         logger.exception(e)
-        writer.close()
+
+
+# https://github.com/streamlit/streamlit/issues/1792
 
 
 def st_main(channel: MemoryObjectReceiveStream[NDArray]):
