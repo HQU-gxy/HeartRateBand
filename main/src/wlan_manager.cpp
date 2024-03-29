@@ -35,8 +35,13 @@ esp_err_t WlanManager::_register_wifi_handlers() {
       [](void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
         auto &self         = *static_cast<WlanManager *>(arg);
         self._is_connected = false;
-        auto TAG           = "WlanManager::connect::wifi_event";
+        constexpr auto TAG           = "WlanManager::connect::wifi_event";
         ESP_LOGI(TAG, "Disconnected from AP");
+
+        const auto err = self.start_connect_task();
+        if (err != ESP_OK) {
+          ESP_LOGE(TAG, "Failed to start connect task");
+        }
       },
       &self);
   ESP_RETURN_ON_ERROR(err, TAG, "Failed to register wifi event handler");
@@ -154,7 +159,7 @@ esp_err_t WlanManager::_connect(const AP &access_point) {
 }
 
 esp_err_t WlanManager::set_ap(AP new_ap) {
-  auto TAG = "WlanManager::set_ap";
+  const auto TAG = "WlanManager::set_ap";
   if (new_ap.ssid.empty()) {
     return ESP_ERR_INVALID_ARG;
   }
@@ -278,7 +283,7 @@ void WlanManager::connect_task(void *pvParameters) {
         ESP_LOGE(TAG, "failed to connect to ap, reason %s (%d)", esp_err_to_name(err), err);
       }
     } else {
-      // ESP_LOGW(TAG, "no ap to connect");
+      ESP_LOGW(TAG, "no ap to connect");
     }
     vTaskDelay(pdMS_TO_TICKS(1000));
   }

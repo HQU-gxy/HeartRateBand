@@ -52,8 +52,8 @@ const char *WLAN_PASSWORD = stringify_expanded(WLAN_AP_PASSWORD);
 static constexpr auto i2c_task = [] {
   static MAX30102 sensor{};
 restart:
-  bool ok    = sensor.begin();
-  bool ok_   = sensor.setSamplingRate(sensor.SAMPLING_RATE_400SPS);
+  bool ok  = sensor.begin();
+  bool ok_ = sensor.setSamplingRate(sensor.SAMPLING_RATE_400SPS);
   if (not(ok or ok_)) {
     ESP_LOGE("i2c_task", "MAX30105 not found or setSamplingRate failed. Please check the wiring");
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -62,6 +62,7 @@ restart:
 
   static constexpr auto BUFFER_COUNT = 200;
   constexpr auto BUFFER_SIZE         = ((BUFFER_COUNT + 10) * sizeof(uint32_t) * 2);
+  static size_t item_count           = 0;
 
   // https://intel.github.io/tinycbor/current/a00046.html
   static etl::array<uint8_t, BUFFER_SIZE> buffer{};
@@ -71,7 +72,10 @@ restart:
   static CborEncoder red_encoder{};
   static CborEncoder ir_encoder{};
 
+  // it turns out you can't really do that
+  // https://intel.github.io/tinycbor/current/a00046.html
   constexpr auto re_init = []() -> CborError {
+    item_count = 0;
     cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
 
     CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_map(&encoder, &map_encoder, 2));
@@ -131,7 +135,8 @@ restart:
     }
     const auto red_err = cbor_encode_uint(&red_encoder, sample.red);
     const auto ir_err  = cbor_encode_uint(&ir_encoder, sample.ir);
-    const bool is_full = red_err == CborErrorOutOfMemory or ir_err == CborErrorOutOfMemory;
+    item_count += 1;
+    const auto is_full = item_count >= BUFFER_COUNT;
     if (is_full) {
       static constexpr auto close_and_get_size = [] -> etl::expected<size_t, CborError> {
         CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&map_encoder, &red_encoder));
@@ -175,10 +180,10 @@ extern "C" void app_main(void) {
   ESP_LOGI(TAG, "ssid=%s; password=%s;", ap.ssid.c_str(), ap.password.c_str());
   static auto evt_grp = xEventGroupCreate();
   static auto manager = wlan::WlanManager(evt_grp);
-  manager.set_ap(std::move(ap));
+  manager.set_ap(ap);
   ESP_ERROR_CHECK(manager.wifi_init());
   ESP_ERROR_CHECK(manager.start_connect_task());
-  ESP_ERROR_CHECK(manager.mqtt_init());
+  // ESP_ERROR_CHECK(manager.mqtt_init());
   i2c_task();
   vTaskDelete(nullptr);
 }
