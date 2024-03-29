@@ -1,19 +1,24 @@
 import socket
-from idna import check_nfc
 import numpy as np
 from jaxtyping import Int, Float
 from loguru import logger
 import anyio
+import asyncio
 from anyio import create_udp_socket, run, create_memory_object_stream
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from anyio.to_thread import run_sync
 from threading import Thread
 import click
 import cbor2 as cbor
+from dataclasses import dataclass
+from pydantic import BaseModel
 import streamlit as st
+from streamlit import config as st_config
+from streamlit.web.bootstrap import run as st_run
 from streamlit.runtime.scriptrunner.script_run_context import add_script_run_ctx, get_script_run_ctx
+from streamlit import session_state
 from plotly.graph_objects import Scatter
-from typing import Tuple, List
+from typing import Any, Dict, Tuple, List, TypedDict
 from time import time
 from typeguard import typechecked, check_type
 
@@ -43,28 +48,80 @@ async def run_udp(host: str, port: int,
 def st_main(channel: MemoryObjectReceiveStream[NDArray]):
     logger.info("Streamlit main")
     st.title("Pulse")
-    arr = np.zeros((0, 2))
+    red_chart = st.empty()
+    ir_chart = st.empty()
+    acc = np.zeros((0, 2))
 
-    def iter_channel():
+    def sync_iter_channel():
         while True:
             try:
-                data = channel.receive_nowait().reshape((-1, 2))
+                data = channel.receive_nowait().reshape(-1, 2)
                 yield data
             except anyio.WouldBlock:
                 pass
+
+    async def async_iter_channel():
+        async for data in channel:
+            yield data.reshape(-1, 2)
+
+    # let's say the sample interval is 2.5ms
+
+    for data in sync_iter_channel():
+        WINDOW_SIZE = 1000
+        acc = np.vstack((acc, data))
+        count = acc.shape[0]
+        if count > WINDOW_SIZE:
+            acc = acc[-WINDOW_SIZE:]
+        red = acc[:, 0]
+        ir = acc[:, 1]
+        xs = np.arange(count) * 2.5
+
+        red_fig = {
+            "data": Scatter(x=xs, y=red, name="Red"),
+        }
+        ir_fig = {
+            "data": Scatter(x=xs, y=ir, name="IR"),
+        }
+        red_chart.plotly_chart(red_fig)
+        ir_chart.plotly_chart(ir_fig)
+
+
+# https://discuss.streamlit.io/t/how-can-i-invoke-streamlit-from-within-python-code/6612/6
+# https://github.com/streamlit/streamlit/issues/6290
+
+
+@dataclass
+class Params:
+    host: str
+    port: int
+
+    def __hash__(self):
+        return hash((self.host, self.port))
+
+
+class AppState(TypedDict):
+    thread: Thread
+    receiver: MemoryObjectReceiveStream[NDArray]
+
+
+# https://discuss.streamlit.io/t/how-to-have-global-variable-outside-of-session-state/54885/2
+# https://docs.streamlit.io/library/api-reference/performance/st.cache_resource
+# https://docs.streamlit.io/library/advanced-features/caching
+@st.cache_resource
+def init(params: Params) -> AppState:
+    sender, receiver = create_memory_object_stream[NDArray]()
+    t = Thread(target=run, args=(run_udp, params.host, params.port, sender))
+    t.start()
+    return {"thread": t, "receiver": receiver}
 
 
 @click.command()
 @click.option("--host", default=DEFAULT_HOST, help="Host address")
 @click.option("--port", default=DEFAULT_PORT, help="Port number")
 def main(host: str, port: int):
-    sender, receiver = create_memory_object_stream[NDArray]()
-    ctx = get_script_run_ctx()
-    t = Thread(target=lambda: st_main(receiver))
-    add_script_run_ctx(t, ctx)
-    t.start()
-    anyio.run(run_udp, host, port, sender)
-    t.join()
+    params = Params(host=host, port=port)
+    app_state = init(params)
+    st_main(app_state["receiver"])
 
 
 if __name__ == "__main__":
