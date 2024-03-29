@@ -64,17 +64,19 @@ def st_main(channel: MemoryObjectReceiveStream[NDArray]):
         async for data in channel:
             yield data.reshape(-1, 2)
 
-    # let's say the sample interval is 2.5ms
-
+    # for 400 samples per second
+    # interval 2.5
+    # for 800 samples per second
+    # interval 1.25
     for data in sync_iter_channel():
-        WINDOW_SIZE = 1000
+        WINDOW_SIZE = 3000
         acc = np.vstack((acc, data))
         count = acc.shape[0]
         if count > WINDOW_SIZE:
             acc = acc[-WINDOW_SIZE:]
         red = acc[:, 0]
         ir = acc[:, 1]
-        xs = np.arange(count) * 2.5
+        xs = np.arange(count) * 1.25
 
         red_fig = {
             "data": Scatter(x=xs, y=red, name="Red"),

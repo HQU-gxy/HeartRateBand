@@ -52,13 +52,29 @@ const char *WLAN_PASSWORD = stringify_expanded(WLAN_AP_PASSWORD);
 static constexpr auto i2c_task = [] {
   static MAX30102 sensor{};
 restart:
-  bool ok  = sensor.begin();
-  bool ok_ = sensor.setSamplingRate(sensor.SAMPLING_RATE_400SPS);
-  if (not(ok or ok_)) {
+  bool ok = sensor.begin();
+  if (not ok) {
     ESP_LOGE("i2c_task", "MAX30105 not found or setSamplingRate failed. Please check the wiring");
     vTaskDelay(pdMS_TO_TICKS(1000));
     goto restart;
   }
+  // for heartrate
+  sensor.setSamplingRate(sensor.SAMPLING_RATE_800SPS);
+  sensor.setSampleAveraging(sensor.SMP_AVE_1);
+  sensor.setMode(sensor.MODE_HR_ONLY);
+  sensor.setADCRange(sensor.ADC_RANGE_16384NA);
+  sensor.setResolution(sensor.RESOLUTION_18BIT_4110US);
+  sensor.setLedCurrent(sensor.LED_IR, 0);
+  sensor.setLedCurrent(sensor.LED_RED, 0xff);
+
+  // for SpO2 only
+  sensor.setSamplingRate(sensor.SAMPLING_RATE_800SPS);
+  sensor.setSampleAveraging(sensor.SMP_AVE_1);
+  sensor.setMode(sensor.MODE_SPO2);
+  sensor.setADCRange(sensor.ADC_RANGE_16384NA);
+  sensor.setResolution(sensor.RESOLUTION_17BIT_215US);
+  sensor.setLedCurrent(sensor.LED_IR, 0xff);
+  sensor.setLedCurrent(sensor.LED_RED, 0xff);
 
   static constexpr auto BUFFER_COUNT = 200;
   static constexpr uint8_t STRIDE[]  = {1, 2};
@@ -88,9 +104,6 @@ restart:
     return CborNoError;
   };
 
-  sensor.setMode(sensor.MODE_RED_IR);
-  sensor.setADCRange(sensor.ADC_RANGE_8192NA);
-  sensor.setResolution(sensor.RESOLUTION_17BIT_215US);
   const auto err = reinit();
   if (err != CborNoError) {
     ESP_LOGE("i2c_task", "re_init cbor buffer failed: %s (%d)", cbor_error_string(err), err);
