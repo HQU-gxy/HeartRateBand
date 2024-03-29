@@ -64,27 +64,17 @@ restart:
   constexpr auto BUFFER_SIZE         = ((BUFFER_COUNT + 10) * sizeof(uint32_t) * 2);
   static size_t item_count           = 0;
 
-  // https://intel.github.io/tinycbor/current/a00046.html
   static etl::array<uint8_t, BUFFER_SIZE> buffer{};
 
   static CborEncoder encoder{};
-  static CborEncoder map_encoder{};
-  static CborEncoder red_encoder{};
-  static CborEncoder ir_encoder{};
+  static CborEncoder array_encoder{};
 
-  // it turns out you can't really do that
   // https://intel.github.io/tinycbor/current/a00046.html
   constexpr auto re_init = []() -> CborError {
     item_count = 0;
     cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
 
-    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_map(&encoder, &map_encoder, 2));
-
-    CBOR_RETURN_WHEN_ERROR(cbor_encode_text_stringz(&map_encoder, "red"));
-    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&map_encoder, &red_encoder, BUFFER_COUNT));
-
-    CBOR_RETURN_WHEN_ERROR(cbor_encode_text_stringz(&map_encoder, "ir"));
-    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&map_encoder, &ir_encoder, BUFFER_COUNT));
+    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&encoder, &array_encoder, BUFFER_COUNT));
 
     return CborNoError;
   };
@@ -121,7 +111,7 @@ restart:
   ESP_LOGI("i2c_task", "Socket created, sending to %s:%d", HOST_IP, HOST_PORT);
 
   const auto loop = [dest_addr, sock, &re_init] {
-    const auto to_down_stream = [dest_addr, sock](etl::span<uint8_t> buf) {
+    const auto to_down_stream = [dest_addr, sock](const etl::span<uint8_t> buf) {
       auto addr           = dest_addr;
       const auto addr_ptr = reinterpret_cast<sockaddr *>(&addr);
       const auto err      = sendto(sock, buf.data(), buf.size(), 0, addr_ptr, sizeof(dest_addr));
@@ -133,15 +123,27 @@ restart:
     if (not sample.valid) {
       return;
     }
-    const auto red_err = cbor_encode_uint(&red_encoder, sample.red);
-    const auto ir_err  = cbor_encode_uint(&ir_encoder, sample.ir);
+    // const auto red_err = cbor_encode_uint(&red_encoder, sample.red);
+    // const auto ir_err  = cbor_encode_uint(&ir_encoder, sample.ir);
+    const auto add_elem = [](uint32_t red, uint32_t ir) -> etl::expected<etl::monostate, CborError> {
+      CborEncoder tuple_encoder{};
+      CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_create_array(&array_encoder, &tuple_encoder, 2));
+      CBOR_RETURN_UE_WHEN_ERROR(cbor_encode_uint(&tuple_encoder, red));
+      CBOR_RETURN_UE_WHEN_ERROR(cbor_encode_uint(&tuple_encoder, ir));
+      CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&array_encoder, &tuple_encoder));
+      return {};
+    };
+    const auto err = add_elem(sample.red, sample.ir);
+    if (not err) {
+      ESP_LOGE("i2c_task", "add_elem failed: %s (%d)", cbor_error_string(err.error()), err.error());
+      re_init();
+      return;
+    }
     item_count += 1;
     const auto is_full = item_count >= BUFFER_COUNT;
     if (is_full) {
       static constexpr auto close_and_get_size = [] -> etl::expected<size_t, CborError> {
-        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&map_encoder, &red_encoder));
-        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&map_encoder, &ir_encoder));
-        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&encoder, &map_encoder));
+        CBOR_RETURN_UE_WHEN_ERROR(cbor_encoder_close_container(&encoder, &array_encoder));
         const auto len = cbor_encoder_get_buffer_size(&encoder, buffer.data());
         return len;
       };
