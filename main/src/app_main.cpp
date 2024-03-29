@@ -61,7 +61,7 @@ restart:
   }
 
   static constexpr auto BUFFER_COUNT = 200;
-  constexpr auto BUFFER_SIZE         = ((BUFFER_COUNT + 10) * sizeof(uint32_t) * 2);
+  constexpr auto BUFFER_SIZE         = ((BUFFER_COUNT + 10) * sizeof(uint32_t) * 3);
   static size_t item_count           = 0;
 
   static etl::array<uint8_t, BUFFER_SIZE> buffer{};
