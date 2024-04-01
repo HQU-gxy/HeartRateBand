@@ -2,7 +2,7 @@
 // File: HeartRateFilter.h
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:34:30
+// C/C++ source code generated on  : 01-Apr-2024 15:40:09
 //
 
 #ifndef HEARTRATEFILTER_H
@@ -20,8 +20,8 @@ class HeartRateFilter {
 public:
   HeartRateFilter();
   ~HeartRateFilter();
-  void hr_filter(const float x_data[], const int x_size[2], float y_data[],
-                 int y_size[2]);
+  void hr_filter(const real32_T x_data[], const int32_T x_size[2],
+                 real32_T y_data[], int32_T y_size[2]);
   hr_filterStackData *getStackData();
 
 private:

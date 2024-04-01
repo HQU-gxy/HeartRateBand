@@ -2,7 +2,7 @@
 // File: hr_filter_types.h
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:34:30
+// C/C++ source code generated on  : 01-Apr-2024 15:40:09
 //
 
 #ifndef HR_FILTER_TYPES_H

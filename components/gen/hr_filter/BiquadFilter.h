@@ -2,7 +2,7 @@
 // File: BiquadFilter.h
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:34:30
+// C/C++ source code generated on  : 01-Apr-2024 15:40:09
 //
 
 #ifndef BIQUADFILTER_H
@@ -22,7 +22,7 @@ class BiquadFilter {
 public:
   BiquadFilter();
   ~BiquadFilter();
-  int isInitialized;
+  int32_T isInitialized;
   dsp_BiquadFilter_0 cSFunObject;
 };
 

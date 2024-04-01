@@ -14,6 +14,7 @@
 #include <etl/span.h>
 #include <etl/expected.h>
 #include <cib/cib.hpp>
+#include <HeartRateFilter.h>
 #include "utils.h"
 
 #define stringify_literal(x)     #x
@@ -27,6 +28,49 @@
 #ifndef WLAN_AP_PASSWORD
 #define WLAN_AP_PASSWORD default
 #endif
+
+//
+// Arguments    : void
+// Return Type  : real32_T
+//
+static real32_T argInit_real32_T() {
+  return 0.0F;
+}
+
+// Function Definitions
+//
+// Arguments    : real32_T result_data[]
+//                int32_T result_size[2]
+// Return Type  : void
+//
+static void argInit_1xd2048_real32_T(real32_T result_data[], int32_T result_size[2]) {
+  // Set the size of the array.
+  // Change this size to the value that the application requires.
+  result_size[0] = 1;
+  result_size[1] = 2;
+  // Loop over the array to initialize each element.
+  for (int32_T idx1{0}; idx1 < 2; idx1++) {
+    // Set the value of the array element.
+    // Change this value to the value that the application requires.
+    result_data[idx1] = argInit_real32_T();
+  }
+}
+
+//
+// Arguments    : gen::HeartRateFilter *instancePtr
+// Return Type  : void
+//
+void main_hr_filter(gen::HeartRateFilter *instancePtr) {
+  int32_T x_size[2];
+  int32_T y_size[2];
+  real32_T x_data[2048];
+  real32_T y_data[2048];
+  // Initialize function 'hr_filter' input arguments.
+  // Initialize function input argument 'x'.
+  argInit_1xd2048_real32_T(x_data, x_size);
+  // Call the entry-point 'hr_filter'.
+  instancePtr->hr_filter(x_data, x_size, y_data, y_size);
+}
 
 static auto sample_enum_to_number = [](MAX30102::SamplingRate sample_rate) -> uint16_t {
   switch (sample_rate) {
@@ -246,6 +290,10 @@ restart:
 // https://github.com/espressif/esp-idf/issues/12098
 // https://github.com/KJ7LNW/esp32-i2c-test/blob/d6383e7d1f815feb44d06685b7f3d16caa7c844f/main/i2c-test.c#L126
 extern "C" void app_main(void) {
+  static gen::HeartRateFilter filter{};
+  // just to see if it can be compiled
+  main_hr_filter(&filter);
+
   constexpr auto TAG = "main";
   initArduino();
 
@@ -253,6 +301,7 @@ extern "C" void app_main(void) {
       .timeout_ms    = 5000,
       .trigger_panic = true,
   };
+
   ESP_ERROR_CHECK(esp_task_wdt_init(&config));
 
   auto ap = wlan::AP{WLAN_SSID, WLAN_PASSWORD};

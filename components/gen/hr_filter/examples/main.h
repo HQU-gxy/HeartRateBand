@@ -2,7 +2,7 @@
 // File: main.h
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:34:30
+// C/C++ source code generated on  : 01-Apr-2024 15:40:09
 //
 
 /*************************************************************************/
@@ -40,7 +40,7 @@
 #include <cstdlib>
 
 // Function Declarations
-extern int main(int argc, char **argv);
+extern int32_T main(int32_T argc, char **argv);
 
 extern void main_hr_filter(gen::HeartRateFilter *instancePtr);
 

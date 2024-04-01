@@ -2,7 +2,7 @@
 // File: main.cpp
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:34:30
+// C/C++ source code generated on  : 01-Apr-2024 15:40:09
 //
 
 /*************************************************************************/
@@ -35,24 +35,26 @@
 #include "HeartRateFilter.h"
 
 // Function Declarations
-static void argInit_1xd2048_real32_T(float result_data[], int result_size[2]);
+static void argInit_1xd2048_real32_T(real32_T result_data[],
+                                     int32_T result_size[2]);
 
-static float argInit_real32_T();
+static real32_T argInit_real32_T();
 
 // Function Definitions
 //
-// Arguments    : float result_data[]
-//                int result_size[2]
+// Arguments    : real32_T result_data[]
+//                int32_T result_size[2]
 // Return Type  : void
 //
-static void argInit_1xd2048_real32_T(float result_data[], int result_size[2])
+static void argInit_1xd2048_real32_T(real32_T result_data[],
+                                     int32_T result_size[2])
 {
   // Set the size of the array.
   // Change this size to the value that the application requires.
   result_size[0] = 1;
   result_size[1] = 2;
   // Loop over the array to initialize each element.
-  for (int idx1{0}; idx1 < 2; idx1++) {
+  for (int32_T idx1{0}; idx1 < 2; idx1++) {
     // Set the value of the array element.
     // Change this value to the value that the application requires.
     result_data[idx1] = argInit_real32_T();
@@ -61,19 +63,19 @@ static void argInit_1xd2048_real32_T(float result_data[], int result_size[2])
 
 //
 // Arguments    : void
-// Return Type  : float
+// Return Type  : real32_T
 //
-static float argInit_real32_T()
+static real32_T argInit_real32_T()
 {
   return 0.0F;
 }
 
 //
-// Arguments    : int argc
+// Arguments    : int32_T argc
 //                char **argv
-// Return Type  : int
+// Return Type  : int32_T
 //
-int main(int, char **)
+int32_T main(int32_T, char **)
 {
   gen::HeartRateFilter *classInstance;
   classInstance = new gen::HeartRateFilter;
@@ -90,10 +92,10 @@ int main(int, char **)
 //
 void main_hr_filter(gen::HeartRateFilter *instancePtr)
 {
-  float x_data[2048];
-  float y_data[2048];
-  int x_size[2];
-  int y_size[2];
+  int32_T x_size[2];
+  int32_T y_size[2];
+  real32_T x_data[2048];
+  real32_T y_data[2048];
   // Initialize function 'hr_filter' input arguments.
   // Initialize function input argument 'x'.
   argInit_1xd2048_real32_T(x_data, x_size);
