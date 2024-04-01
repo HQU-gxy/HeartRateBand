@@ -27,9 +27,6 @@
 [submodule "components/boost_mp11/mp11"]
 	path = components/boost_mp11/mp11
 	url = https://github.com/boostorg/mp11
-[submodule "components/max3010x/SparkFun_MAX3010x_Sensor_Library"]
-	path = components/max3010x/SparkFun_MAX3010x_Sensor_Library
-	url = https://github.com/sparkfun/SparkFun_MAX3010x_Sensor_Library
 [submodule "components/max3010x_lib/MAX3010x-Sensor-Library"]
 	path = components/max3010x_lib/MAX3010x-Sensor-Library
 	url = https://github.com/devxplained/MAX3010x-Sensor-Library

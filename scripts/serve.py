@@ -57,9 +57,13 @@ async def run_udp(host: str, port: int,
                                            local_port=port,
                                            local_host=host) as sock:
             async for b, addr in sock_recv_gen(sock):
-                logger.info(f"len(data)={len(b)} from {addr}")
                 data: any = cbor.loads(b)  # type: ignore
-                strides = list(data[0])
+                header = list(data[0])
+                strides = list(header[0])
+                sample_rate = header[1]
+                logger.info(
+                    f"len(data)={len(b)} from {addr}; strides={strides}; sample_rate={sample_rate}"
+                )
                 arr = np.array(data[1]).reshape((-1, strides[1]))
                 await channel.send(arr)
                 acc = np.vstack((acc, arr))
@@ -165,4 +169,4 @@ def main(host: str, port: int):
 
 
 if __name__ == "__main__":
-    main() # pylint: disable=no-value-for-parameter
+    main()  # pylint: disable=no-value-for-parameter

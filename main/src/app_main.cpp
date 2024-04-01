@@ -28,7 +28,53 @@
 #define WLAN_AP_PASSWORD default
 #endif
 
-constexpr auto HOST_IP       = "192.168.2.228";
+static auto sample_enum_to_number = [](MAX30102::SamplingRate sample_rate) -> uint16_t {
+  switch (sample_rate) {
+    case MAX30102::SAMPLING_RATE_50SPS:
+      return 50;
+    case MAX30102::SAMPLING_RATE_100SPS:
+      return 100;
+    case MAX30102::SAMPLING_RATE_200SPS:
+      return 200;
+    case MAX30102::SAMPLING_RATE_400SPS:
+      return 400;
+    case MAX30102::SAMPLING_RATE_800SPS:
+      return 800;
+    case MAX30102::SAMPLING_RATE_1000SPS:
+      return 1000;
+    case MAX30102::SAMPLING_RATE_1600SPS:
+      return 1600;
+    case MAX30102::SAMPLING_RATE_3200SPS:
+      return 3200;
+    default:
+      return 0;
+  }
+};
+
+static auto sample_average_to_number = [](MAX30102::SampleAveraging average) -> uint8_t {
+  switch (average) {
+    case MAX30102::SMP_AVE_1:
+      return 1;
+    case MAX30102::SMP_AVE_2:
+      return 2;
+    case MAX30102::SMP_AVE_4:
+      return 4;
+    case MAX30102::SMP_AVE_8:
+      return 8;
+    case MAX30102::SMP_AVE_16:
+      return 16;
+    case MAX30102::SMP_AVE_32:
+      return 32;
+    default:
+      return 0;
+  }
+};
+
+static auto effective_sample_rate = [](MAX30102::SamplingRate sample_rate, MAX30102::SampleAveraging average) -> uint16_t {
+  return sample_enum_to_number(sample_rate) / sample_average_to_number(average);
+};
+
+constexpr auto HOST_IP       = "192.168.2.226";
 constexpr uint16_t HOST_PORT = 8080;
 
 using namespace common;
@@ -58,23 +104,20 @@ restart:
     vTaskDelay(pdMS_TO_TICKS(1000));
     goto restart;
   }
+  constexpr auto SAMPLE_RATE = MAX30102::SAMPLING_RATE_400SPS;
+  constexpr auto AVERAGING   = MAX30102::SMP_AVE_4;
+  constexpr auto MODE        = MAX30102::MODE_HR_ONLY;
+  constexpr auto ADC_RANGE   = MAX30102::ADC_RANGE_16384NA;
+  constexpr auto RESOLUTION  = MAX30102::RESOLUTION_18BIT_4110US;
+
   // for heartrate
-  sensor.setSamplingRate(sensor.SAMPLING_RATE_800SPS);
-  sensor.setSampleAveraging(sensor.SMP_AVE_1);
-  sensor.setMode(sensor.MODE_HR_ONLY);
-  sensor.setADCRange(sensor.ADC_RANGE_16384NA);
-  sensor.setResolution(sensor.RESOLUTION_18BIT_4110US);
+  sensor.setSamplingRate(SAMPLE_RATE);
+  sensor.setSampleAveraging(AVERAGING);
+  sensor.setMode(MODE);
+  sensor.setADCRange(ADC_RANGE);
+  sensor.setResolution(RESOLUTION);
   sensor.setLedCurrent(sensor.LED_IR, 0);
   sensor.setLedCurrent(sensor.LED_RED, 0xff);
-
-  // for SpO2 only
-  // sensor.setSamplingRate(sensor.SAMPLING_RATE_800SPS);
-  // sensor.setSampleAveraging(sensor.SMP_AVE_1);
-  // sensor.setMode(sensor.MODE_SPO2);
-  // sensor.setADCRange(sensor.ADC_RANGE_16384NA);
-  // sensor.setResolution(sensor.RESOLUTION_17BIT_215US);
-  // sensor.setLedCurrent(sensor.LED_IR, 0xff);
-  // sensor.setLedCurrent(sensor.LED_RED, 0xff);
 
   static constexpr auto BUFFER_COUNT = 200;
   static constexpr uint8_t STRIDE[]  = {1, 2};
@@ -93,12 +136,26 @@ restart:
     cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
     CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&encoder, &outter_array_encoder, 2));
 
-    CborEncoder stride_encoder{};
-    CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&outter_array_encoder, &stride_encoder, 2));
-    for (const auto s : STRIDE) {
-      CBOR_RETURN_WHEN_ERROR(cbor_encode_uint(&stride_encoder, s));
+    {
+      CborEncoder header_encoder{};
+      CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&outter_array_encoder, &header_encoder, 2));
+
+      {
+        CborEncoder stride_encoder{};
+        CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&header_encoder, &stride_encoder, 2));
+        for (const auto s : STRIDE) {
+          CBOR_RETURN_WHEN_ERROR(cbor_encode_uint(&stride_encoder, s));
+        }
+        CBOR_RETURN_WHEN_ERROR(cbor_encoder_close_container(&header_encoder, &stride_encoder));
+      }
+
+      {
+        constexpr auto effective = effective_sample_rate(SAMPLE_RATE, AVERAGING);
+        CBOR_RETURN_WHEN_ERROR(cbor_encode_uint(&header_encoder, effective));
+      }
+
+      CBOR_RETURN_WHEN_ERROR(cbor_encoder_close_container(&outter_array_encoder, &header_encoder));
     }
-    CBOR_RETURN_WHEN_ERROR(cbor_encoder_close_container(&outter_array_encoder, &stride_encoder));
 
     CBOR_RETURN_WHEN_ERROR(cbor_encoder_create_array(&outter_array_encoder, &array_encoder, BUFFER_COUNT * STRIDE[1]));
     return CborNoError;
@@ -141,12 +198,12 @@ restart:
         ESP_LOGE("i2c_task", "Error occurred during sending: errno %d", errno);
       }
     };
-    const auto sample = sensor.readSample(100);
+
+    const auto sample = sensor.readSample(50);
     if (not sample.valid) {
       return;
     }
-    // const auto red_err = cbor_encode_uint(&red_encoder, sample.red);
-    // const auto ir_err  = cbor_encode_uint(&ir_encoder, sample.ir);
+
     const auto add_elem = [](uint32_t red, uint32_t ir) -> etl::expected<etl::monostate, CborError> {
       CBOR_RETURN_UE_WHEN_ERROR(cbor_encode_uint(&array_encoder, red));
       CBOR_RETURN_UE_WHEN_ERROR(cbor_encode_uint(&array_encoder, ir));
