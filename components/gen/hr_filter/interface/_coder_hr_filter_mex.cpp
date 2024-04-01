@@ -2,7 +2,7 @@
 // File: _coder_hr_filter_mex.cpp
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:40:09
+// C/C++ source code generated on  : 01-Apr-2024 16:42:51
 //
 
 // Include Files
@@ -20,13 +20,18 @@
 void mexFunction(int32_T nlhs, mxArray *plhs[], int32_T nrhs,
                  const mxArray *prhs[])
 {
+  hr_filterStackData *hr_filterStackDataGlobal{nullptr};
+  hr_filterStackDataGlobal =
+      static_cast<hr_filterStackData *>(new hr_filterStackData);
   mexAtExit(&hr_filter_atexit);
   // Module initialization.
   hr_filter_initialize();
   // Dispatch the entry-point.
-  unsafe_hr_filter_mexFunction(nlhs, plhs, nrhs, prhs);
+  unsafe_hr_filter_mexFunction(hr_filterStackDataGlobal, nlhs, plhs, nrhs,
+                               prhs);
   // Module termination.
   hr_filter_terminate();
+  delete hr_filterStackDataGlobal;
 }
 
 //
@@ -41,13 +46,15 @@ emlrtCTX mexFunctionCreateRootTLS()
 }
 
 //
-// Arguments    : int32_T nlhs
+// Arguments    : hr_filterStackData *SD
+//                int32_T nlhs
 //                mxArray *plhs[1]
 //                int32_T nrhs
 //                const mxArray *prhs[1]
 // Return Type  : void
 //
-void unsafe_hr_filter_mexFunction(int32_T nlhs, mxArray *plhs[1], int32_T nrhs,
+void unsafe_hr_filter_mexFunction(hr_filterStackData *SD, int32_T nlhs,
+                                  mxArray *plhs[1], int32_T nrhs,
                                   const mxArray *prhs[1])
 {
   emlrtStack st{
@@ -67,7 +74,7 @@ void unsafe_hr_filter_mexFunction(int32_T nlhs, mxArray *plhs[1], int32_T nrhs,
                         "hr_filter");
   }
   // Call the function.
-  hr_filter_api(prhs[0], &outputs);
+  b_hr_filter_api(SD, prhs[0], &outputs);
   // Copy over outputs to the caller.
   emlrtReturnArrays(1, &plhs[0], &outputs);
 }

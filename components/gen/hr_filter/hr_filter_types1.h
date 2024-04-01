@@ -2,7 +2,7 @@
 // File: hr_filter_types1.h
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:40:09
+// C/C++ source code generated on  : 01-Apr-2024 16:42:51
 //
 
 #ifndef HR_FILTER_TYPES1_H
@@ -10,6 +10,7 @@
 
 // Include Files
 #include "rtwtypes.h"
+#include "coder_array.h"
 #include <cstddef>
 #include <cstdlib>
 
@@ -17,7 +18,7 @@
 namespace gen {
 struct dsp_BiquadFilter_0 {
   int32_T S0_isInitialized;
-  real32_T W0_FILT_STATES[8192];
+  ::coder::array<real32_T, 1U> W0_FILT_STATES;
   int32_T W1_PreviousNumChannels;
   real32_T P0_ICRTP;
   real32_T P1_RTP1COEFF[6];

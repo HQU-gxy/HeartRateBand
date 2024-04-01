@@ -2,7 +2,7 @@
 // File: main.cpp
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:40:09
+// C/C++ source code generated on  : 01-Apr-2024 16:42:51
 //
 
 /*************************************************************************/
@@ -92,10 +92,10 @@ int32_T main(int32_T, char **)
 //
 void main_hr_filter(gen::HeartRateFilter *instancePtr)
 {
+  static real32_T x_data[2048];
+  static real32_T y_data[2048];
   int32_T x_size[2];
   int32_T y_size[2];
-  real32_T x_data[2048];
-  real32_T y_data[2048];
   // Initialize function 'hr_filter' input arguments.
   // Initialize function input argument 'x'.
   argInit_1xd2048_real32_T(x_data, x_size);

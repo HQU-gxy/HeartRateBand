@@ -2,7 +2,7 @@
 // File: _coder_hr_filter_info.cpp
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:40:09
+// C/C++ source code generated on  : 01-Apr-2024 16:42:51
 //
 
 // Include Files
@@ -63,7 +63,7 @@ mxArray *emlrtMexFcnProperties()
       xEntryPoints, 0, "FullPath",
       emlrtMxCreateString("/Volumes/External/Code/matlab/hr_filter.m"));
   emlrtSetField(xEntryPoints, 0, "TimeStamp",
-                emlrtMxCreateDoubleScalar(739343.62295138894));
+                emlrtMxCreateDoubleScalar(739343.69458333333));
   emlrtSetField(xEntryPoints, 0, "Constructor",
                 emlrtMxCreateLogicalScalar(false));
   emlrtSetField(xEntryPoints, 0, "Visible", emlrtMxCreateLogicalScalar(true));

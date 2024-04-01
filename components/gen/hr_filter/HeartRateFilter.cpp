@@ -2,12 +2,13 @@
 // File: HeartRateFilter.cpp
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:40:09
+// C/C++ source code generated on  : 01-Apr-2024 16:42:51
 //
 
 // Include Files
 #include "HeartRateFilter.h"
 #include "BiquadFilter.h"
+#include "coder_array.h"
 #include "hr_filter_types.h"
 #include "hr_filter_types1.h"
 
@@ -38,6 +39,7 @@ static void hr_filter_init(HeartRateFilter *aInstancePtr)
 {
   hr_filterStackData *localSD;
   localSD = aInstancePtr->getStackData();
+  localSD->pd->Hd.cSFunObject.W0_FILT_STATES.set_size(8192);
   localSD->pd->Hd_not_empty = false;
 }
 

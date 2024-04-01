@@ -2,7 +2,7 @@
 // File: _coder_hr_filter_api.cpp
 //
 // MATLAB Coder version            : 23.2
-// C/C++ source code generated on  : 01-Apr-2024 15:40:09
+// C/C++ source code generated on  : 01-Apr-2024 16:42:51
 //
 
 // Include Files
@@ -133,11 +133,13 @@ static const mxArray *emlrt_marshallOut(const real32_T u_data[],
 }
 
 //
-// Arguments    : const mxArray *prhs
+// Arguments    : hr_filterStackData *SD
+//                const mxArray *prhs
 //                const mxArray **plhs
 // Return Type  : void
 //
-void hr_filter_api(const mxArray *prhs, const mxArray **plhs)
+void b_hr_filter_api(hr_filterStackData *SD, const mxArray *prhs,
+                     const mxArray **plhs)
 {
   emlrtStack st{
       nullptr, // site
@@ -146,15 +148,13 @@ void hr_filter_api(const mxArray *prhs, const mxArray **plhs)
   };
   int32_T x_size[2];
   int32_T y_size[2];
-  real32_T x_data[2048];
-  real32_T y_data[2048];
   st.tls = emlrtRootTLSGlobal;
   // Marshall function inputs
-  emlrt_marshallIn(st, emlrtAliasP(prhs), "x", x_data, x_size);
+  emlrt_marshallIn(st, emlrtAliasP(prhs), "x", SD->f0.x_data, x_size);
   // Invoke the target function
-  hr_filter(x_data, x_size, y_data, y_size);
+  hr_filter(SD, SD->f0.x_data, x_size, SD->f0.y_data, y_size);
   // Marshall function outputs
-  *plhs = emlrt_marshallOut(y_data, y_size);
+  *plhs = emlrt_marshallOut(SD->f0.y_data, y_size);
 }
 
 //
