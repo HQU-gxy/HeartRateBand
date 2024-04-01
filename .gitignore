@@ -44,3 +44,4 @@ managed_components
 __pycache__
 .cache
 *.npy
+*.npy.json
