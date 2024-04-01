@@ -20,8 +20,17 @@ class HeartRateFilter {
 public:
   HeartRateFilter();
   ~HeartRateFilter();
-  void hr_filter(const real32_T x_data[], const int32_T x_size[2],
-                 real32_T y_data[], int32_T y_size[2]);
+  /**
+   * @brief filters input x and returns output y.
+   * @param x_data input data
+   * @param x_size input data size
+   * @param y_data output data
+   * @note y_data must be pre-allocated with the same size as x_data
+   * @note x_data and y_data seems can be the same array
+   * @warning this code is generated from MATLAB code. I have totally no idea
+   * what and how it works
+   */
+  void hr_filter(const real32_T x_data[], int32_T x_size, real32_T y_data[]);
   hr_filterStackData *getStackData();
 
 private:
