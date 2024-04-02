@@ -16,6 +16,7 @@
 #include <etl/deque.h>
 #include <cib/cib.hpp>
 #include <esp_dsp.h>
+#include <Eigen>
 #include "utils.h"
 
 #define stringify_literal(x)     #x
@@ -36,9 +37,10 @@ using Unit = etl::monostate;
  * @note 50Hz sampling rate
  * @note see `analyse.ipynb` for more details
  */
-constexpr float b[]    = {0.24467406, 0., -0.24467406};
-constexpr float a[]    = {1., -1.47803426, 0.51065189};
-constexpr float coef[] = {b[0], b[1], b[2], a[1], a[2]};
+constexpr float b[]         = {0.24467406, 0., -0.24467406};
+constexpr float a[]         = {1., -1.47803426, 0.51065189};
+constexpr float coef[]      = {b[0], b[1], b[2], a[1], a[2]};
+constexpr float SAMPLE_RATE = 50.0f;
 
 /**
  *
@@ -72,6 +74,10 @@ enum class FilterError {
   BufferTooSmall,
 };
 
+/**
+ * @tparam N the size of input buffer.
+ * @note N don't have to be too big if you can promise to fetch the output frequent enough.
+ */
 template <size_t N>
 class HRFilter {
   etl::deque<float, N> samples_{};
@@ -109,7 +115,7 @@ public:
 
   static bool verify_sample(uint32_t sample) {
     // 1.8e6
-    constexpr uint32_t lower_bound = 1'800'000;
+    constexpr uint32_t lower_bound = 1'750'000;
     return sample > lower_bound;
   }
 

@@ -33,3 +33,6 @@
 [submodule "components/esp-dsp"]
 	path = components/esp-dsp
 	url = https://github.com/espressif/esp-dsp
+[submodule "components/eigen/eigen"]
+	path = components/eigen/eigen
+	url = https://gitlab.com/libeigen/eigen
