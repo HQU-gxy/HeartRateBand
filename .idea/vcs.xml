@@ -7,6 +7,7 @@
     <mapping directory="$PROJECT_DIR$/components/cib/compile-time-init-build" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/conc/cpp-baremetal-concurrency" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/cpp-channel/cpp-channel" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/components/esp-dsp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/etl/etl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/fmt/fmt" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/max3010x_lib/MAX3010x-Sensor-Library" vcs="Git" />

@@ -30,3 +30,6 @@
 [submodule "components/max3010x_lib/MAX3010x-Sensor-Library"]
 	path = components/max3010x_lib/MAX3010x-Sensor-Library
 	url = https://github.com/devxplained/MAX3010x-Sensor-Library
+[submodule "components/esp-dsp"]
+	path = components/esp-dsp
+	url = https://github.com/espressif/esp-dsp

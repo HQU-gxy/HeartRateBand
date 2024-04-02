@@ -5,30 +5,30 @@ dependencies:
       service_url: https://api.components.espressif.com/
       type: service
     version: 1.0.3
+  esp-dsp:
+    component_hash: null
+    source:
+      path: /Users/crosstyan/Code/HeartRateBand/components/esp-dsp
+      type: local
+    version: 1.4.12
   espressif/cbor:
     component_hash: 440f4ee4504841cc9b4f3a8ef755776a612ac9dace355514c68b999868f990ff
     source:
       service_url: https://api.components.espressif.com/
       type: service
     version: 0.6.0~1
-  espressif/esp-dsp:
-    component_hash: 3e7bbd487f1357a1d4944d0c85966d049501ea281b8a4c7f93f7cfedd5b7f23d
-    source:
-      service_url: https://api.components.espressif.com/
-      type: service
-    version: 1.4.12
   espressif/esp-zboss-lib:
-    component_hash: dad55dcf4e9e05892d75c833f621d0421b6b6657c5078fd9cfb2da9a496f9a91
+    component_hash: 8e1a2412dba140ff0815eb24b326324f9127976a6fe7207a03b799fa6f1ddf86
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 1.2.1
+    version: 1.2.2
   espressif/esp-zigbee-lib:
-    component_hash: 3485a92e8eddeb47dc80ab14e771ea7ae70cdfe72ce1c11216c7df51e4774b2e
+    component_hash: 61f8a7d85c80eeeabdab92ffc069b1cc760259263d394d5402821d3767c69169
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 1.2.1
+    version: 1.2.2
   espressif/esp_diag_data_store:
     component_hash: 8849195251dbb8a2d7268335277cfa310cef36e4ac1e90cd59ad3be4269a30d7
     source:
@@ -112,6 +112,6 @@ dependencies:
       service_url: https://api.components.espressif.com/
       type: service
     version: 1.14.2
-manifest_hash: f463aae80087162fb071fde0d0def11cf229042f492e69ebc5cd88016b6198ac
+manifest_hash: 4a5af167e3884613b296590281ead5eceddf2ad3d9e5e5e0f15cd782620b7ba8
 target: esp32
 version: 1.0.0

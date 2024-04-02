@@ -13,7 +13,9 @@
 #include <etl/vector.h>
 #include <etl/span.h>
 #include <etl/expected.h>
+#include <etl/deque.h>
 #include <cib/cib.hpp>
+#include <esp_dsp.h>
 #include "utils.h"
 
 #define stringify_literal(x)     #x
@@ -27,6 +29,169 @@
 #ifndef WLAN_AP_PASSWORD
 #define WLAN_AP_PASSWORD default
 #endif
+
+namespace filter {
+using Unit = etl::monostate;
+/**
+ * @note 50Hz sampling rate
+ * @note see `analyse.ipynb` for more details
+ */
+constexpr float b[]    = {0.24467406, 0., -0.24467406};
+constexpr float a[]    = {1., -1.47803426, 0.51065189};
+constexpr float coef[] = {b[0], b[1], b[2], a[1], a[2]};
+
+/**
+ *
+ * @brief IIR filter
+ * @param [in] input input signal
+ * @param [out] output output signal
+ * @param [in] len length of input signal (the length of output signal is the same)
+ * @param [in] w delay line (length = 2)
+ * @sa https://docs.espressif.com/projects/esp-dsp/en/latest/esp32/esp-dsp-apis.html?highlight=iir#iir
+ */
+static constexpr auto do_iir = [](const float *input, float *output, int len, float *w) {
+  // we know the function won't modify the coef
+  // it just some dumb ass forget to keep it const correct
+  auto coef_ptr = const_cast<float *>(coef);
+#if defined(ESP32)
+  dsps_biquad_f32_ae32(input, output, len, coef_ptr, w);
+#elif defined(ESP32S3)
+  dsps_biquad_f32_aes3(input, output, len, coef_ptr, w);
+#else
+  dsps_biquad_f32_ansi(input, output, len, coef_ptr, w);
+#endif
+};
+
+enum class Status {
+  Pending,
+  Capturing,
+};
+
+enum class FilterError {
+  NotCapturing,
+  BufferTooSmall,
+};
+
+template <size_t N>
+class HRFilter {
+  etl::deque<float, N> samples_{};
+  etl::array<float, 2> w_{0};
+
+  static constexpr size_t MIN_SUCCESSIVE_GOOD_COUNT = 10;
+  static constexpr size_t MIN_SUCCESSIVE_BAD_COUNT  = 3;
+  size_t successive_good{0};
+  size_t successive_bad{0};
+
+  Status status_ = Status::Pending;
+
+public:
+  /**
+   * @brief Enqueues an element to the back of the deque. If the deque is full, it removes the front element before enqueuing.
+   *
+   * This function implements a sliding window mechanism on the deque. When the deque is full and a new element needs to be added,
+   * it removes the oldest element (at the front of the deque) before adding the new element at the back.
+   *
+   * @tparam T The type of elements in the deque.
+   * @param queue The deque to which the element is to be added.
+   * @param el The element to be added to the deque.
+   * @return true if an element was removed from the front of the deque, false otherwise.
+   */
+  template <typename T>
+  static bool sliding_enqueue(etl::ideque<T> &queue, T &&el) {
+    if (queue.size() == queue.capacity()) {
+      queue.pop_front();
+      queue.emplace_back(el);
+      return true;
+    }
+    queue.emplace_back(el);
+    return false;
+  }
+
+  static bool verify_sample(uint32_t sample) {
+    // 1.8e6
+    constexpr uint32_t lower_bound = 1'800'000;
+    return sample > lower_bound;
+  }
+
+  /**
+   * @brief Adds a sample to the input buffer
+   * @param sample The sample to be added
+   * @return true if the sample was added, false otherwise
+   * @effect The status of the filter may change from Pending to Capturing or vice versa
+   */
+  bool try_add_sample(uint32_t sample) {
+    const bool ok = verify_sample(sample);
+    if (ok) {
+      successive_good += 1;
+    } else {
+      successive_bad += 1;
+    }
+
+    using enum Status;
+    switch (status_) {
+      case Pending:
+        if (successive_good >= MIN_SUCCESSIVE_GOOD_COUNT) {
+          status_        = Capturing;
+          successive_bad = 0;
+          sliding_enqueue(samples_, static_cast<float>(sample));
+        }
+
+        if (not ok) {
+          successive_good = 0;
+        }
+        break;
+      case Capturing:
+        if (successive_bad >= MIN_SUCCESSIVE_BAD_COUNT) {
+          status_         = Pending;
+          successive_good = 0;
+          samples_.clear();
+        }
+
+        if (ok) {
+          successive_bad = 0;
+          sliding_enqueue(samples_, static_cast<float>(sample));
+        }
+        break;
+    }
+
+    return ok;
+  }
+
+  /**
+   * @brief executes the filter
+   * @param [out] output output buffer
+   * @return the size of valid output data
+   */
+  etl::expected<size_t, FilterError> exec_filter(etl::span<float> output) {
+    using ue_t = etl::unexpected<FilterError>;
+    using enum FilterError;
+    if (status_ != Status::Capturing) {
+      return ue_t{NotCapturing};
+    }
+
+    const auto len = samples_.size();
+    if (len == 0) {
+      return ue_t{BufferTooSmall};
+    }
+
+    if (output.size() < len) {
+      return ue_t{BufferTooSmall};
+    }
+
+    do_iir(samples_.data(), output.data(), len, w_.data());
+    samples_.clear();
+    return len;
+  }
+
+  [[nodiscard]] size_t buffer_size() const {
+    return samples_.size();
+  }
+
+  [[nodiscard]] Status status() const {
+    return status_;
+  }
+};
+}
 
 static auto sample_enum_to_number = [](MAX30102::SamplingRate sample_rate) -> uint16_t {
   switch (sample_rate) {
