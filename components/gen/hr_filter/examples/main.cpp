@@ -99,8 +99,6 @@ void main_hr_filter(gen::HeartRateFilter *instancePtr)
   // Initialize function 'hr_filter' input arguments.
   // Initialize function input argument 'x'.
   argInit_1xd2048_real32_T(x_data, x_size);
-  // Call the entry-point 'hr_filter'.
-  instancePtr->hr_filter(x_data, x_size, y_data, y_size);
 }
 
 //

@@ -14,7 +14,6 @@
 #include <etl/span.h>
 #include <etl/expected.h>
 #include <cib/cib.hpp>
-#include <HeartRateFilter.h>
 #include "utils.h"
 
 #define stringify_literal(x)     #x
@@ -28,49 +27,6 @@
 #ifndef WLAN_AP_PASSWORD
 #define WLAN_AP_PASSWORD default
 #endif
-
-//
-// Arguments    : void
-// Return Type  : real32_T
-//
-static real32_T argInit_real32_T() {
-  return 0.0F;
-}
-
-// Function Definitions
-//
-// Arguments    : real32_T result_data[]
-//                int32_T result_size[2]
-// Return Type  : void
-//
-static void argInit_1xd2048_real32_T(real32_T result_data[], int32_T result_size[2]) {
-  // Set the size of the array.
-  // Change this size to the value that the application requires.
-  result_size[0] = 1;
-  result_size[1] = 2;
-  // Loop over the array to initialize each element.
-  for (int32_T idx1{0}; idx1 < 2; idx1++) {
-    // Set the value of the array element.
-    // Change this value to the value that the application requires.
-    result_data[idx1] = argInit_real32_T();
-  }
-}
-
-//
-// Arguments    : gen::HeartRateFilter *instancePtr
-// Return Type  : void
-//
-void main_hr_filter(gen::HeartRateFilter *instancePtr) {
-  int32_T x_size[2];
-  int32_T y_size[2];
-  real32_T x_data[2048];
-  real32_T y_data[2048];
-  // Initialize function 'hr_filter' input arguments.
-  // Initialize function input argument 'x'.
-  argInit_1xd2048_real32_T(x_data, x_size);
-  // Call the entry-point 'hr_filter'.
-  instancePtr->hr_filter(x_data, x_size, y_data, y_size);
-}
 
 static auto sample_enum_to_number = [](MAX30102::SamplingRate sample_rate) -> uint16_t {
   switch (sample_rate) {
@@ -149,7 +105,7 @@ restart:
     goto restart;
   }
   constexpr auto SAMPLE_RATE = MAX30102::SAMPLING_RATE_400SPS;
-  constexpr auto AVERAGING   = MAX30102::SMP_AVE_4;
+  constexpr auto AVERAGING   = MAX30102::SMP_AVE_8;
   constexpr auto MODE        = MAX30102::MODE_HR_ONLY;
   constexpr auto ADC_RANGE   = MAX30102::ADC_RANGE_16384NA;
   constexpr auto RESOLUTION  = MAX30102::RESOLUTION_18BIT_4110US;
@@ -163,9 +119,9 @@ restart:
   sensor.setLedCurrent(sensor.LED_IR, 0);
   sensor.setLedCurrent(sensor.LED_RED, 0xff);
 
-  static constexpr auto BUFFER_COUNT = 200;
+  static constexpr auto BUFFER_COUNT = 100;
   static constexpr uint8_t STRIDE[]  = {1, 2};
-  static constexpr auto BUFFER_SIZE  = ((BUFFER_COUNT + 10) * sizeof(uint32_t) * 3);
+  static constexpr auto BUFFER_SIZE  = ((BUFFER_COUNT + 4) * sizeof(uint32_t) * (STRIDE[1] + 1));
   static size_t item_count           = 0;
 
   static etl::array<uint8_t, BUFFER_SIZE> buffer{};
@@ -290,10 +246,6 @@ restart:
 // https://github.com/espressif/esp-idf/issues/12098
 // https://github.com/KJ7LNW/esp32-i2c-test/blob/d6383e7d1f815feb44d06685b7f3d16caa7c844f/main/i2c-test.c#L126
 extern "C" void app_main(void) {
-  static gen::HeartRateFilter filter{};
-  // just to see if it can be compiled
-  main_hr_filter(&filter);
-
   constexpr auto TAG = "main";
   initArduino();
 
