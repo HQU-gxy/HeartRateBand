@@ -8,7 +8,7 @@ dependencies:
   esp-dsp:
     component_hash: null
     source:
-      path: /Users/crosstyan/Code/HeartRateBand/components/esp-dsp
+      path: /Volumes/External/Code/HeartRateBand/components/esp-dsp
       type: local
     version: 1.4.12
   espressif/cbor:
@@ -17,6 +17,12 @@ dependencies:
       service_url: https://api.components.espressif.com/
       type: service
     version: 0.6.0~1
+  espressif/esp-modbus:
+    component_hash: ec567c912fbd8b08648ba72b5562df012482584918fb4af670e57025fc30ea42
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 1.0.15
   espressif/esp-zboss-lib:
     component_hash: 8e1a2412dba140ff0815eb24b326324f9127976a6fe7207a03b799fa6f1ddf86
     source:
@@ -43,6 +49,12 @@ dependencies:
     version: 1.1.0
   espressif/esp_insights:
     component_hash: 72ece1dcf0146275e1df976c713a9b193af0907931f3810957ee68a0a84b077d
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 1.1.0
+  espressif/esp_modem:
+    component_hash: e48da33fee082dd9d9a97a354a228057e07a14ac108766b40ad84e018205410a
     source:
       service_url: https://api.components.espressif.com/
       type: service
@@ -83,12 +95,18 @@ dependencies:
       service_url: https://api.components.espressif.com/
       type: service
     version: 1.0.3
-  espressif/mdns:
-    component_hash: d8ae7aa491ff97aea1d00d514a1de42cdbaaf1bce10df183968fa5594b904de7
+  espressif/libsodium:
+    component_hash: f6e982479a2389cb6868e8fb761cf23aba6c355a8090b3e906299807775f58a3
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 1.2.5
+    version: 1.0.20~1
+  espressif/mdns:
+    component_hash: 31117d76cae83a6d83ffd7f035f6fdae5bd05b914fc30b641afeb208b84de19a
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 1.3.2
   espressif/qrcode:
     component_hash: 3b493771bc5d6ad30cbf87c25bf784aada8a08c941504355b55d6b75518ed7bc
     source:
@@ -96,22 +114,22 @@ dependencies:
       type: service
     version: 0.1.0~2
   espressif/rmaker_common:
-    component_hash: 021c02465e4996dd3292db36ea47b5e3122e7e2d3514797735a96bc12598b44f
+    component_hash: a3a1df881278d0351fc850b77792fe8a196ddd6dcacbea203d606329cc6a0239
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 1.4.5
+    version: 1.4.6
   idf:
     component_hash: null
     source:
       type: idf
-    version: 5.1.3
+    version: 5.1.4
   joltwallet/littlefs:
     component_hash: 703c642136031deca2579bdc19721a397f9fd9033b1c667c7b89fe23fa394c40
     source:
       service_url: https://api.components.espressif.com/
       type: service
     version: 1.14.2
-manifest_hash: 4a5af167e3884613b296590281ead5eceddf2ad3d9e5e5e0f15cd782620b7ba8
+manifest_hash: 777dda2b4b50c813849c5de157c399d581e48bb2142a61a1dac6432272013b08
 target: esp32
 version: 1.0.0
