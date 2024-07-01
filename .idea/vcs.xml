@@ -14,41 +14,29 @@
     <mapping directory="$PROJECT_DIR$/components/max3010x_lib/MAX3010x-Sensor-Library" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/stdx/cpp-std-extensions" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/tinycbor/tinycbor" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/asio/asio" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bootloader/subproject/components/micro-ecc/micro-ecc" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bt/controller/lib_esp32" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bt/controller/lib_esp32c2/esp32c2-bt-lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bt/controller/lib_esp32c3_family" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bt/controller/lib_esp32c6/esp32c6-bt-lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bt/controller/lib_esp32h2/esp32h2-bt-lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/bt/host/nimble/nimble" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/cbor/tinycbor" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/cmock/CMock" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/coap/libcoap" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/coap/libcoap/ext/tinydtls" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/esp_coex/lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/esp_phy/lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/esp_wifi/lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/esptool_py/esptool" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/expat/expat" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/heap/tlsf" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/ieee802154/lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/json/cJSON" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/libsodium/libsodium" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/lwip/lwip" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/mbedtls/mbedtls" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/mqtt/esp-mqtt" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/nghttp/nghttp2" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/nghttp/nghttp2/third-party/mruby" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/nghttp/nghttp2/third-party/neverbleed" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/openthread/lib" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/openthread/openthread" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/protobuf-c/protobuf-c" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/spiffs/spiffs" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/tinyusb/tinyusb" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/components/unity/unity" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/examples/build_system/cmake/import_lib/main/lib/tinyxml2" vcs="Git" />
-    <mapping directory="/Volumes/External/esp-idf/examples/peripherals/secure_element/atecc608_ecdsa/components/esp-cryptoauthlib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bootloader/subproject/components/micro-ecc/micro-ecc" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bt/controller/lib_esp32" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bt/controller/lib_esp32c2/esp32c2-bt-lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bt/controller/lib_esp32c3_family" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bt/controller/lib_esp32c6/esp32c6-bt-lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bt/controller/lib_esp32h2/esp32h2-bt-lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/bt/host/nimble/nimble" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/cmock/CMock" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/esp_coex/lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/esp_phy/lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/esp_wifi/lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/heap/tlsf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/json/cJSON" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/lwip/lwip" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/mbedtls/mbedtls" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/mqtt/esp-mqtt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/openthread/lib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/openthread/openthread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/protobuf-c/protobuf-c" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/spiffs/spiffs" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/components/unity/unity" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/examples/build_system/cmake/import_lib/main/lib/tinyxml2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../esp-idf/examples/peripherals/secure_element/atecc608_ecdsa/components/esp-cryptoauthlib" vcs="Git" />
   </component>
 </project>
