@@ -267,6 +267,8 @@ const char *WLAN_PASSWORD = stringify_expanded(WLAN_AP_PASSWORD);
 
 // https://github.com/espressif/esp-idf/tree/master/examples/protocols/sockets/udp_client
 static constexpr auto i2c_task = [] {
+  constexpr auto SCL_PIN = GPIO_NUM_22;
+  constexpr auto SDA_PIN = GPIO_NUM_21;
   static MAX30102 sensor{};
 restart:
   bool ok = sensor.begin();
