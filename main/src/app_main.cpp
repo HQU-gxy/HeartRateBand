@@ -53,7 +53,6 @@ constexpr float SAMPLE_RATE = 50.0f;
  */
 static constexpr auto do_iir = [](const float *input, float *output, int len, float *w) {
   // we know the function won't modify the coef
-  // it just some dumb ass forget to keep it const correct
   auto coef_ptr = const_cast<float *>(coef);
 #if defined(ESP32)
   dsps_biquad_f32_ae32(input, output, len, coef_ptr, w);
